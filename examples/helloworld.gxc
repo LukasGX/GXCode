@@ -1,0 +1,5 @@
+#ns HelloWorld
+
+entrypoint() {
+    out "Hello World!";
+}
