@@ -1,0 +1,5 @@
+entrypoint() {
+    out "Program started";
+    str name = "ABC";
+    out "Hello @name";
+}
