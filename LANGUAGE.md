@@ -23,7 +23,7 @@ Output strings using the `out` command:
 
 ```gxc
 entrypoint() {
-out "Hello World!";
+    out "Hello World!";
 }
 ```
 
@@ -41,7 +41,7 @@ Two types of comments are supported:
 
 ```gxc
 ///
-/// This is also a comment
+This is also a comment
 ///
 ```
 
