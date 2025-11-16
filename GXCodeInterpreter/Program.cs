@@ -14,6 +14,9 @@ namespace GXCodeInterpreter
             Interpreter interpreter = new("""
             entrypoint(){
                 str abc = "def";
+                int number = 0;
+                out abc;
+                out number;
             }
             """, env);
 
@@ -90,6 +93,11 @@ namespace GXCodeInterpreter
             {"<T1>[]", typeof(Array)},
             {"<T1>{<T2>}", typeof(Dictionary<,>)}
         };
+
+        public static List<string> Keywords = new()
+        {
+            "out", "return"
+        };
     }
 
     public class Interpreter
@@ -154,16 +162,44 @@ namespace GXCodeInterpreter
                 string pattern = @"^""([^""]*)""$";
                 bool match = Regex.IsMatch(value, pattern);
                 char lastCharacter = value[value.Length - 1];
-                if (!match) throw new GXCodeError("GX0004", $"Unexpected {lastCharacter}, Expected \"");
+                if (type == "str" && !match) throw new GXCodeError("GX0004", $"Unexpected {lastCharacter}, Expected \"");
 
                 if (Lists.PrimitiveTypes.TryGetValue(type, out Type? type1))
                 {
                     Env.variables.Add(type1, name, value);
                     Helper.Debug($"Variable {name} of type {type} set to {value}");
+                    return;
                 }
                 else
                 {
                     throw new GXCodeInterpreterError("Error with Lists class");
+                }
+            }
+
+            // keyword str
+            List<List<string>> found2 = Helper.RegEx(line, @"^([a-zA-Z0-9_]+) (.*);$");
+            if (found2.Count == 1)
+            {
+                string keyword = found2[0][0].Trim();
+                if (!Lists.Keywords.Contains(keyword)) throw new GXCodeError("GX0005", $"Unknown keyword {keyword}");
+
+                string attr = found2[0][1].Trim();
+                string pattern = @"^""([^""]*)""$";
+                bool isString = Regex.IsMatch(attr, pattern);
+
+                // hardcoded keywords
+                if (keyword == "out" && isString)
+                {
+                    Console.WriteLine(attr.Trim('\"'));
+                }
+                else if (keyword == "out" && !isString && Env.variables.Contains2(attr))
+                {
+                    List<object> output = Env.variables.Get3By2(attr).ToList();
+                    List<Type> types = Env.variables.Get1By2(attr).ToList();
+                    string print = types[0] == typeof(string) 
+                        ? output[0].ToString().Trim('\"') 
+                        : output[0]?.ToString() ?? "";
+                    Console.WriteLine(print);
                 }
             }
         }
