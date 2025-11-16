@@ -15,6 +15,8 @@ namespace GXCodeInterpreter
             entrypoint(){
                 str abc = "def";
                 int number = 0;
+                dec commanumber = 0.5;
+                bool boolean = true;
                 out abc;
                 out number;
             }
@@ -87,7 +89,7 @@ namespace GXCodeInterpreter
         {
             {"str", typeof(string)},
             {"int", typeof(short)},
-            {"dec", typeof(float)},
+            {"dec", typeof(double)},
             {"bool", typeof(bool)},
             {"rex", typeof(string)},
             {"<T1>[]", typeof(Array)},
@@ -166,7 +168,45 @@ namespace GXCodeInterpreter
 
                 if (Lists.PrimitiveTypes.TryGetValue(type, out Type? type1))
                 {
-                    Env.variables.Add(type1, name, value);
+                    if (type1 == typeof(string)) Env.variables.Add(type1, name, value);
+                    else if (type1 == typeof(short))
+                    {
+                        try
+                        {
+                            int result = int.Parse(value);
+                            Env.variables.Add(type1, name, result);
+                        }
+                        catch (FormatException)
+                        {
+                            throw new GXCodeError("GX0006", $"{value} is not a valid integer");
+                        }
+                    }
+                    else if (type1 == typeof(double))
+                    {
+                        try
+                        {
+                            double result = double.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                            Env.variables.Add(type1, name, result);
+                        }
+                        catch (FormatException)
+                        {
+                            throw new GXCodeError("GX0006", $"{value} is not a valid decimal");
+                        }
+                    }
+                    else if (type1 == typeof(bool))
+                    {
+                        try
+                        {
+                            bool result = bool.Parse(value);
+                            Env.variables.Add(type1, name, result);
+                        }
+                        catch (FormatException)
+                        {
+                            throw new GXCodeError("GX0006", $"{value} is not a valid boolean");
+                        }
+                    }
+                    else throw new NotImplementedException($"{type1} is not implemented yet");
+
                     Helper.Debug($"Variable {name} of type {type} set to {value}");
                     return;
                 }
