@@ -11,19 +11,14 @@ namespace GXCodeInterpreter
         public static void Main(string[] args)
         {
             Environment env = new();
-            Interpreter interpreter = new("""
-            entrypoint(){
-                str abc = "def";
-                int number = 0;
-                dec commanumber = 0.5;
-                bool boolean = true;
-                out abc;
-                out number;
-            }
-            """, env);
+            string content = File.ReadAllText("program.gxc");
+            Interpreter interpreter = new(content, env);
 
             try
             {
+                // Namespace
+                interpreter.DetectNamespace();
+                // Entrypoint
                 Entrypoint entrypoint = interpreter.DetectEntryPoint();
                 foreach (string line in entrypoint.Lines)
                 {
@@ -54,13 +49,14 @@ namespace GXCodeInterpreter
     {
         //                      type,  name,  value
         public TripleDictionary<Type, string, object> variables = new();
+        public string? Namespace;
     }
 
     public class Helper
     {
         public static List<List<string>> RegEx(string text, string pattern)
         {
-            Regex rg = new(pattern);
+            Regex rg = new(pattern, RegexOptions.Multiline);
             MatchCollection matched = rg.Matches(text);
             var result = new List<List<string>>();
             foreach (Match m in matched)
@@ -111,6 +107,26 @@ namespace GXCodeInterpreter
         {
             Code = code;
             Env = env;
+        }
+
+        public void DetectNamespace()
+        {
+            string pattern = @"#ns ([a-zA-Z0-9_]+)";
+            List<List<string>> matches = Helper.RegEx(Code, pattern);
+            if (matches.Count == 1)
+            {
+                string ns = matches[0][0];
+                Env.Namespace = ns;
+                Helper.Debug($"Namespace: {ns}");
+            }
+            else if (matches.Count < 1)
+            {
+                throw new GXCodeError("GX0006", "No namespace definition found!");
+            }
+            else
+            {
+                throw new GXCodeError("GX0007", "Too many namespace definitions!");
+            }
         }
 
         public Entrypoint DetectEntryPoint()
@@ -237,7 +253,7 @@ namespace GXCodeInterpreter
                     List<object> output = Env.variables.Get3By2(attr).ToList();
                     List<Type> types = Env.variables.Get1By2(attr).ToList();
                     string print = types[0] == typeof(string) 
-                        ? output[0].ToString().Trim('\"') 
+                        ? output[0].ToString().Trim('\"')
                         : output[0]?.ToString() ?? "";
                     Console.WriteLine(print);
                 }
