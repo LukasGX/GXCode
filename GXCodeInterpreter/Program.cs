@@ -10,12 +10,19 @@ namespace GXCodeInterpreter
     {
         public static void Main(string[] args)
         {
+            if (args.Contains("--no-debug"))
+            {
+                Helper.Debugging = false;
+            }
+
             Environment env = new();
-            string content = File.ReadAllText("program.gxc");
+            string content = File.ReadAllText("D:\\Data\\Coding\\GXCodeInterpreter\\GXCodeInterpreter\\program.gxc");
             Interpreter interpreter = new(content, env);
 
             try
             {
+                // Comments
+                interpreter.StripComments();
                 // Namespace
                 interpreter.DetectNamespace();
                 // Entrypoint
@@ -48,15 +55,20 @@ namespace GXCodeInterpreter
     public class Environment
     {
         //                      type,  name,  value
-        public TripleDictionary<Type, string, object> variables = new();
-        public string? Namespace;
+        public TripleDictionary<Type, string, object> variables { get; set; } = new();
+        public string? Namespace { get; set; }
+        public List<CallstackElement> callstack { get; set; } = [];
     }
 
-    public class Helper
+    public static class Helper
     {
-        public static List<List<string>> RegEx(string text, string pattern)
+        public static bool Debugging = true;
+
+        public static List<List<string>> RegEx(string text, string pattern, bool singleLine = false)
         {
-            Regex rg = new(pattern, RegexOptions.Multiline);
+            Regex rg;
+            if (singleLine) { rg = new(pattern, RegexOptions.Singleline); }
+            else { rg = new(pattern, RegexOptions.Multiline); }
             MatchCollection matched = rg.Matches(text);
             var result = new List<List<string>>();
             foreach (Match m in matched)
@@ -71,7 +83,8 @@ namespace GXCodeInterpreter
 
         public static void Debug(string msg)
         {
-
+            if (!Debugging) return;
+            
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("[Debug] ");
             Console.ResetColor();
@@ -109,6 +122,14 @@ namespace GXCodeInterpreter
             Env = env;
         }
 
+        public void StripComments()
+        {
+            string pattern = @"// .*?$";
+            string newCode = Regex.Replace(Code, pattern, "", RegexOptions.Multiline);
+
+            Code = newCode;
+        }
+
         public void DetectNamespace()
         {
             string pattern = @"#ns ([a-zA-Z0-9_]+)";
@@ -131,7 +152,7 @@ namespace GXCodeInterpreter
 
         public Entrypoint DetectEntryPoint()
         {
-            string pattern = @"(?s)entrypoint\((.*?)\)\s*\{(.*?)\}";
+            string pattern = @"(?s)entrypoint\((.*?)\)\s*\{(.*)\}";
             MatchCollection matches = Regex.Matches(Code, pattern);
 
             if (matches.Count > 1)
@@ -144,7 +165,7 @@ namespace GXCodeInterpreter
                 // string arguments = matches[0].Groups[1].Value;
                 string instructions = matches[0].Groups[2].Value;
 
-                List<string> lines = instructions.Split('\n').ToList();
+                List<string> lines = instructions.Split("\r\n").ToList();
                 lines.RemoveAll(s => string.IsNullOrWhiteSpace(s));
 
                 Entrypoint entrypoint = new(lines);
@@ -156,7 +177,7 @@ namespace GXCodeInterpreter
             }
         }
 
-        public void Execute(string line)
+        public void Execute(string line, bool skipCallstackCheck = false)
         {
             if (line != "")
             {
@@ -167,6 +188,33 @@ namespace GXCodeInterpreter
             else return;
 
             // check for line pattern
+            if (!skipCallstackCheck)
+            {
+                // closing
+                CallstackElement ics = Env.callstack.LastOrDefault();
+                if (ics is CS_If) // ...
+                {
+                    CS_If cs_if = (CS_If)ics;
+                    cs_if.codelines.Add(line);
+
+                    List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
+                    if (foundClosing.Count == 1)
+                    {
+                        if (cs_if.condition == true)
+                        {
+                            foreach (string codeline in cs_if.codelines)
+                            {
+                                Execute(codeline, true);
+                            }
+                        }
+
+                        Env.callstack.Remove(ics);
+                    }
+
+                    return;
+                }
+            }
+
             // variable definition
             List<List<string>> found = Helper.RegEx(line, @"^([a-zA-Z0-9_\[\]\{\};]+) ([a-zA-Z0-9_]+) = (.*);$");
             if (found.Count == 1)
@@ -252,13 +300,85 @@ namespace GXCodeInterpreter
                 {
                     List<object> output = Env.variables.Get3By2(attr).ToList();
                     List<Type> types = Env.variables.Get1By2(attr).ToList();
-                    string print = types[0] == typeof(string) 
+                    string print = types[0] == typeof(string)
                         ? output[0].ToString().Trim('\"')
                         : output[0]?.ToString() ?? "";
                     Console.WriteLine(print);
                 }
             }
+
+            // if statement
+            List<List<string>> found3 = Helper.RegEx(line, @"if \((.*)\) {", singleLine: true);
+            if (found3.Count == 1)
+            {
+                CS_If cs_if = new();
+
+                string condition = found3[0][0];
+                bool evaluationResult = false;
+
+                List<List<string>> boolean = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+)$");
+                if (boolean.Count == 1)
+                {
+                    evaluationResult = EvaluateBool(boolean[0][0]);
+                }
+
+                List<List<string>> negativeBoolean = Helper.RegEx(condition, @"^\!([a-zA-Z0-9_]+)$");
+                if (negativeBoolean.Count == 1)
+                {
+                    evaluationResult = !EvaluateBool(boolean[0][0]);
+                }
+
+                List<List<string>> comparision = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+) == (.+?)$");
+                if (comparision.Count == 1)
+                {
+                    throw new NotImplementedException();
+                }
+
+                List<List<string>> negativeComparision = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+) != (.+?)$");
+                if (negativeComparision.Count == 1)
+                {
+                    throw new NotImplementedException();
+                }
+
+                Helper.Debug($"Evaluated: {evaluationResult}");
+
+                cs_if.condition = evaluationResult;
+                Env.callstack.Add(cs_if);
+            }
         }
+
+        private bool EvaluateBool(string found)
+        {
+            if (!Env.variables.Contains2(found))
+            {
+                throw new GXCodeError("GX0008", $"Unknown variable {found}");
+            }
+
+            if (Env.variables.Get1By2(found).ToList()[0] != typeof(bool))
+            {
+                throw new GXCodeError("GX0009", $"Unexpected non-boolean variable {found}");
+            }
+
+            string? value = Env.variables.Get3By2(found).ToList()[0].ToString();
+            try
+            {
+                bool result = bool.Parse(value);
+                if (result) return true;
+                else return false;
+            }
+            catch (FormatException)
+            {
+                throw new GXCodeInterpreterError($"Error with saved variable {found}");
+            }
+        }
+    }
+
+    public class CallstackElement { }
+    
+    public class CS_If : CallstackElement
+    {
+        public List<string> codelines { get; set; } = [];
+        public bool condition { get; set; } = false;
     }
     
     public class Entrypoint

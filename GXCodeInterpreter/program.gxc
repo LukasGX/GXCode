@@ -1,9 +1,11 @@
 #ns test
-entrypoint(){
+entrypoint() {
     str abc = "def";
     int number = 0;
     dec commanumber = 0.5;
     bool boolean = true;
-    out abc;
-    out number;
+
+    if (boolean) {
+        out "abc is def";
+    }
 }
