@@ -84,7 +84,7 @@ namespace GXCodeInterpreter
         public static void Debug(string msg)
         {
             if (!Debugging) return;
-            
+
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("[Debug] ");
             Console.ResetColor();
@@ -101,7 +101,7 @@ namespace GXCodeInterpreter
             {"dec", typeof(double)},
             {"bool", typeof(bool)},
             {"rex", typeof(string)},
-            {"<T1>[]", typeof(Array)},
+            {"<T1>[]", typeof(List<>)},
             {"<T1>{<T2>}", typeof(Dictionary<,>)}
         };
 
@@ -219,64 +219,171 @@ namespace GXCodeInterpreter
             List<List<string>> found = Helper.RegEx(line, @"^([a-zA-Z0-9_\[\]\{\};]+) ([a-zA-Z0-9_]+) = (.*);$");
             if (found.Count == 1)
             {
+                // type checking
                 string type = found[0][0];
-                if (!Lists.PrimitiveTypes.ContainsKey(type)) throw new GXCodeError("GX0003", $"Unknown type {type}");
+
+                string pat = @"^([a-zA-Z0-9_]+)\[\]$";
+                Match matches = Regex.Match(type, pat);
+                bool isArray = matches.Success;
+                string? arrayType = isArray ? matches.Groups[1].Value : null;
+
+                string pat2 = @"^([a-zA-Z0-9_]+)\{([a-zA-Z0-9_;]+)$";
+                Match matchX = Regex.Match(type, pat2);
+                bool isDict = matchX.Success;
+                string? dictType = isArray ? matchX.Groups[1].Value : null;
+
+                if (!Lists.PrimitiveTypes.ContainsKey(type) && !isArray && !isDict) throw new GXCodeError("GX0003", $"Unknown type {type}");
 
                 string name = found[0][1];
                 string value = found[0][2];
 
-                string pattern = @"^""([^""]*)""$";
-                bool match = Regex.IsMatch(value, pattern);
-                char lastCharacter = value[value.Length - 1];
-                if (type == "str" && !match) throw new GXCodeError("GX0004", $"Unexpected {lastCharacter}, Expected \"");
-
-                if (Lists.PrimitiveTypes.TryGetValue(type, out Type? type1))
+                if (isArray)
                 {
-                    if (type1 == typeof(string)) Env.variables.Add(type1, name, value);
-                    else if (type1 == typeof(short))
-                    {
-                        try
-                        {
-                            int result = int.Parse(value);
-                            Env.variables.Add(type1, name, result);
-                        }
-                        catch (FormatException)
-                        {
-                            throw new GXCodeError("GX0006", $"{value} is not a valid integer");
-                        }
-                    }
-                    else if (type1 == typeof(double))
-                    {
-                        try
-                        {
-                            double result = double.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
-                            Env.variables.Add(type1, name, result);
-                        }
-                        catch (FormatException)
-                        {
-                            throw new GXCodeError("GX0006", $"{value} is not a valid decimal");
-                        }
-                    }
-                    else if (type1 == typeof(bool))
-                    {
-                        try
-                        {
-                            bool result = bool.Parse(value);
-                            Env.variables.Add(type1, name, result);
-                        }
-                        catch (FormatException)
-                        {
-                            throw new GXCodeError("GX0006", $"{value} is not a valid boolean");
-                        }
-                    }
-                    else throw new NotImplementedException($"{type1} is not implemented yet");
+                    string pattern = @"^\[(.*)\]$";
+                    Match match = Regex.Match(value, pattern);
+                    if (!match.Success) throw new GXCodeError("GX0006", $"{value} is not a valid {arrayType} array");
+                    string values = match.Groups[1].Value;
 
-                    Helper.Debug($"Variable {name} of type {type} set to {value}");
-                    return;
+                    if (!Lists.PrimitiveTypes.ContainsKey(arrayType)) throw new GXCodeError("GX0003", $"Unknown type {type}");
+
+                    if (Lists.PrimitiveTypes.TryGetValue(arrayType, out Type? type1))
+                    {
+                        if (type1 == typeof(string))
+                        {
+                            string elementPattern = @"""([^""]*)""";
+                            List<List<string>> elementMatches = Helper.RegEx(values, elementPattern);
+
+                            List<string> elements = new();
+
+                            if (elementMatches.Count > 0)
+                            {
+                                foreach (List<string> matcher in elementMatches)
+                                {
+                                    elements.Add(matcher[0]);
+                                }
+                            }
+
+                            Env.variables.Add(typeof(List<string>), name, elements);
+                        }
+                        else if (type1 == typeof(short))
+                        {
+                            List<string> elementsRaw = values.Split(',').ToList();
+                            List<int> elements = new();
+
+                            foreach (string element in elementsRaw)
+                            {
+                                try
+                                {
+                                    int result = int.Parse(element);
+                                    elements.Add(result);
+                                }
+                                catch (FormatException)
+                                {
+                                    throw new GXCodeError("GX0006", $"{element} is not a valid integer");
+                                }
+                            }
+
+                            Env.variables.Add(typeof(List<int>), name, elements);
+                        }
+                        else if (type1 == typeof(double))
+                        {
+                            List<string> elementsRaw = values.Split(',').ToList();
+                            List<double> elements = new();
+
+                            foreach (string element in elementsRaw)
+                            {
+                                try
+                                {
+                                    double result = double.Parse(element, System.Globalization.CultureInfo.InvariantCulture);
+                                    elements.Add(result);
+                                }
+                                catch (FormatException)
+                                {
+                                    throw new GXCodeError("GX0006", $"{element} is not a valid decimal");
+                                }
+                            }
+
+                            Env.variables.Add(typeof(List<double>), name, elements);
+                        }
+                        else if (type1 == typeof(bool))
+                        {
+                            List<string> elementsRaw = values.Split(',').ToList();
+                            List<bool> elements = new();
+
+                            foreach (string element in elementsRaw)
+                            {
+                                try
+                                {
+                                    bool result = bool.Parse(element);
+                                    elements.Add(result);
+                                }
+                                catch (FormatException)
+                                {
+                                    throw new GXCodeError("GX0006", $"{element} is not a valid boolean");
+                                }
+                            }
+
+                            Env.variables.Add(typeof(List<bool>), name, elements);
+                        }
+                    }
+                    else throw new GXCodeInterpreterError("Error with Lists class");
+                }
+                else if (isDict)
+                {
+                    
                 }
                 else
                 {
-                    throw new GXCodeInterpreterError("Error with Lists class");
+                    string pattern = @"^""([^""]*)""$";
+                    bool match = Regex.IsMatch(value, pattern);
+                    char lastCharacter = value[value.Length - 1];
+                    if (type == "str" && !match) throw new GXCodeError("GX0004", $"Unexpected {lastCharacter}, Expected \"");
+
+                    if (Lists.PrimitiveTypes.TryGetValue(type, out Type? type1))
+                    {
+                        if (type1 == typeof(string)) Env.variables.Add(type1, name, value);
+                        else if (type1 == typeof(short))
+                        {
+                            try
+                            {
+                                int result = int.Parse(value);
+                                Env.variables.Add(type1, name, result);
+                            }
+                            catch (FormatException)
+                            {
+                                throw new GXCodeError("GX0006", $"{value} is not a valid integer");
+                            }
+                        }
+                        else if (type1 == typeof(double))
+                        {
+                            try
+                            {
+                                double result = double.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                                Env.variables.Add(type1, name, result);
+                            }
+                            catch (FormatException)
+                            {
+                                throw new GXCodeError("GX0006", $"{value} is not a valid decimal");
+                            }
+                        }
+                        else if (type1 == typeof(bool))
+                        {
+                            try
+                            {
+                                bool result = bool.Parse(value);
+                                Env.variables.Add(type1, name, result);
+                            }
+                            catch (FormatException)
+                            {
+                                throw new GXCodeError("GX0006", $"{value} is not a valid boolean");
+                            }
+                        }
+                        else throw new NotImplementedException($"{type1} is not implemented yet");
+
+                        Helper.Debug($"Variable {name} of type {type} set to {value}");
+                        return;
+                    }
+                    else throw new GXCodeInterpreterError("Error with Lists class");
                 }
             }
 
