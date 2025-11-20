@@ -16,5 +16,11 @@ entrypoint() {
         out "abc is not def";
     }
 
-    out "Here";
+    repeat (3) {
+        out "A";
+    }
+
+    iterate (numbers) {
+        out element;
+    }
 }

@@ -261,6 +261,71 @@ namespace GXCodeInterpreter
 
                     return;
                 }
+                else if (lcs is CS_Repeat csR && !csR.Closed)
+                {
+                    csR.codelines.Add(line);
+
+                    List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
+                    if (foundClosing.Count == 1)
+                    {
+                        for (int i = 1; i <= csR.times; i++)
+                        {
+                            foreach (string codeline in csR.codelines)
+                            {
+                                Execute(codeline, true);
+                            }
+                        }
+
+                        Env.callstack.Remove(lcs);
+                    }
+
+                    return;
+                }
+                else if (lcs is CS_Iterate csI && !csI.Closed)
+                {
+                    csI.codelines.Add(line);
+
+                    List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
+                    if (foundClosing.Count == 1)
+                    {
+                        List<object> outerList = Env.variables.Get3By2(csI.array).ToList();
+                        // IEnumerable<object> innerList = (IEnumerable<object>)outerList[0];
+                        // List<object> list = innerList.ToList();
+
+                        object listObj = outerList[0];
+                        List<object> objects;
+
+                        if (listObj is System.Collections.IEnumerable enumerable && !(listObj is string))
+                        {
+                            objects = new List<object>();
+                            foreach (object item in enumerable)
+                            {
+                                objects.Add(item);
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception("Kein gültiges IEnumerable");
+                        }
+
+                        object lastElement = objects[0];
+
+                        foreach (object element in objects)
+                        {
+                            Env.variables.Remove(typeof(object), "element", lastElement);
+                            Env.variables.Add(typeof(object), "element", element);
+                            foreach (string codeline in csI.codelines)
+                            {
+                                Execute(codeline, true);
+                            }
+                            lastElement = element;
+                        }
+
+                        Env.callstack.Remove(lcs);
+                    }
+
+                    return;
+                }
             }
 
             // variable definition
@@ -515,6 +580,40 @@ namespace GXCodeInterpreter
             {
                 Env.callstack.Remove(icl);
             }
+
+            // repeat statement
+            List<List<string>> found7 = Helper.RegEx(line, @"repeat \((\d+)\) {", singleLine: true);
+            if (found7.Count == 1)
+            {
+                CS_Repeat csR = new();
+                string value = found7[0][0];
+
+                try
+                {
+                    csR.times = int.Parse(value);
+                }
+                catch (FormatException)
+                {
+                    throw new GXCodeError("GX0006", $"{value} is not a valid integer");
+                }
+
+                Env.callstack.Add(csR);
+            }
+
+            // repeat statement with variable
+            // reserve found8
+
+            // iterate statement
+            List<List<string>> found9 = Helper.RegEx(line, @"iterate \((.*)\) {", singleLine: true);
+            if (found9.Count == 1)
+            {
+                CS_Iterate csI = new();
+
+                string iterate = found9[0][0];
+                csI.array = iterate;
+
+                Env.callstack.Add(csI);
+            }
         }
         
         private bool evaluateIf(string condition)
@@ -572,7 +671,7 @@ namespace GXCodeInterpreter
             {
                 throw new GXCodeInterpreterError($"Error with saved variable {found}");
             }
-            catch (NullReferenceException)
+            catch (ArgumentNullException)
             {
                 throw new GXCodeInterpreterError($"Error with saved variable {found}");
             }
@@ -581,7 +680,7 @@ namespace GXCodeInterpreter
 
     public class CallstackElement
     {
-        public bool Closed = false;
+        public bool Closed { get; set; } = false;
     }
 
     public class CS_If : CallstackElement
@@ -595,9 +694,22 @@ namespace GXCodeInterpreter
         public List<string> codelines { get; set; } = [];
         public bool condition { get; set; } = false;
     }
+
     public class CS_Else : CallstackElement
     {
         public List<string> codelines { get; set; } = [];
+    }
+
+    public class CS_Repeat : CallstackElement
+    {
+        public List<string> codelines { get; set; } = [];
+        public int times { get; set; }
+    }
+
+    public class CS_Iterate : CallstackElement
+    {
+        public List<string> codelines { get; set; } = [];
+        public string array { get; set; } = "";
     }
     
     public class Entrypoint
