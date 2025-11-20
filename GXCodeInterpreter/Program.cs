@@ -56,6 +56,7 @@ namespace GXCodeInterpreter
     {
         //                      type,  name,  value
         public TripleDictionary<Type, string, object> variables { get; set; } = new();
+        public TripleDictionary<List<Type>, List<string>, List<object>> dictionaries;
         public string? Namespace { get; set; }
         public List<CallstackElement> callstack { get; set; } = [];
     }
@@ -190,25 +191,65 @@ namespace GXCodeInterpreter
             // check for line pattern
             if (!skipCallstackCheck)
             {
-                // closing
-                CallstackElement ics = Env.callstack.LastOrDefault();
-                if (ics is CS_If) // ...
+                // closing: only treat callstack elements that are currently open (not Closed)
+                CallstackElement? lcs = Env.callstack.LastOrDefault();
+                if (lcs is CS_If csIf && !csIf.Closed)
                 {
-                    CS_If cs_if = (CS_If)ics;
-                    cs_if.codelines.Add(line);
+                    csIf.codelines.Add(line);
 
                     List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
                     if (foundClosing.Count == 1)
                     {
-                        if (cs_if.condition == true)
+                        if (csIf.condition == true)
                         {
-                            foreach (string codeline in cs_if.codelines)
+                            foreach (string codeline in csIf.codelines)
+                            {
+                                Execute(codeline, true);
+                            }
+
+                            Env.callstack.Remove(lcs);
+                        }
+                        else
+                        {
+                            csIf.Closed = true;
+                        }
+                    }
+
+                    return;
+                }
+                else if (lcs is CS_Else_If csEIf && !csEIf.Closed)
+                {
+                    csEIf.codelines.Add(line);
+
+                    List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
+                    if (foundClosing.Count == 1)
+                    {
+                        if (csEIf.condition == true)
+                        {
+                            foreach (string codeline in csEIf.codelines)
                             {
                                 Execute(codeline, true);
                             }
                         }
 
-                        Env.callstack.Remove(ics);
+                        Env.callstack.Remove(lcs);
+                    }
+
+                    return;
+                }
+                else if (lcs is CS_Else csE && !csE.Closed)
+                {
+                    csE.codelines.Add(line);
+
+                    List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
+                    if (foundClosing.Count == 1)
+                    {
+                        foreach (string codeline in csE.codelines)
+                        {
+                            Execute(codeline, true);
+                        }
+
+                        Env.callstack.Remove(lcs);
                     }
 
                     return;
@@ -230,7 +271,7 @@ namespace GXCodeInterpreter
                 string pat2 = @"^([a-zA-Z0-9_]+)\{([a-zA-Z0-9_;]+)$";
                 Match matchX = Regex.Match(type, pat2);
                 bool isDict = matchX.Success;
-                string? dictType = isArray ? matchX.Groups[1].Value : null;
+                string? dictType = isDict ? matchX.Groups[1].Value + "; " + matchX.Groups[2].Value : null;
 
                 if (!Lists.PrimitiveTypes.ContainsKey(type) && !isArray && !isDict) throw new GXCodeError("GX0003", $"Unknown type {type}");
 
@@ -244,9 +285,9 @@ namespace GXCodeInterpreter
                     if (!match.Success) throw new GXCodeError("GX0006", $"{value} is not a valid {arrayType} array");
                     string values = match.Groups[1].Value;
 
-                    if (!Lists.PrimitiveTypes.ContainsKey(arrayType)) throw new GXCodeError("GX0003", $"Unknown type {type}");
+                    if (arrayType != null && !Lists.PrimitiveTypes.ContainsKey(arrayType)) throw new GXCodeError("GX0003", $"Unknown type {type}");
 
-                    if (Lists.PrimitiveTypes.TryGetValue(arrayType, out Type? type1))
+                    if (arrayType != null && Lists.PrimitiveTypes.TryGetValue(arrayType, out Type? type1))
                     {
                         if (type1 == typeof(string))
                         {
@@ -330,7 +371,7 @@ namespace GXCodeInterpreter
                 }
                 else if (isDict)
                 {
-                    
+
                 }
                 else
                 {
@@ -341,7 +382,7 @@ namespace GXCodeInterpreter
 
                     if (Lists.PrimitiveTypes.TryGetValue(type, out Type? type1))
                     {
-                        if (type1 == typeof(string)) Env.variables.Add(type1, name, value);
+                        if (type1 == typeof(string)) Env.variables.Add(type1, name, value.Trim('\"'));
                         else if (type1 == typeof(short))
                         {
                             try
@@ -401,14 +442,14 @@ namespace GXCodeInterpreter
                 // hardcoded keywords
                 if (keyword == "out" && isString)
                 {
-                    Console.WriteLine(attr.Trim('\"'));
+                    Console.WriteLine(attr);
                 }
                 else if (keyword == "out" && !isString && Env.variables.Contains2(attr))
                 {
                     List<object> output = Env.variables.Get3By2(attr).ToList();
                     List<Type> types = Env.variables.Get1By2(attr).ToList();
-                    string print = types[0] == typeof(string)
-                        ? output[0].ToString().Trim('\"')
+                    string? print = types[0] == typeof(string)
+                        ? output[0].ToString()
                         : output[0]?.ToString() ?? "";
                     Console.WriteLine(print);
                 }
@@ -419,39 +460,72 @@ namespace GXCodeInterpreter
             if (found3.Count == 1)
             {
                 CS_If cs_if = new();
-
                 string condition = found3[0][0];
-                bool evaluationResult = false;
 
-                List<List<string>> boolean = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+)$");
-                if (boolean.Count == 1)
-                {
-                    evaluationResult = EvaluateBool(boolean[0][0]);
-                }
-
-                List<List<string>> negativeBoolean = Helper.RegEx(condition, @"^\!([a-zA-Z0-9_]+)$");
-                if (negativeBoolean.Count == 1)
-                {
-                    evaluationResult = !EvaluateBool(boolean[0][0]);
-                }
-
-                List<List<string>> comparision = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+) == (.+?)$");
-                if (comparision.Count == 1)
-                {
-                    throw new NotImplementedException();
-                }
-
-                List<List<string>> negativeComparision = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+) != (.+?)$");
-                if (negativeComparision.Count == 1)
-                {
-                    throw new NotImplementedException();
-                }
-
-                Helper.Debug($"Evaluated: {evaluationResult}");
-
-                cs_if.condition = evaluationResult;
+                cs_if.condition = evaluateIf(condition);
                 Env.callstack.Add(cs_if);
             }
+
+            CallstackElement? ics = Env.callstack.LastOrDefault();
+
+            // else if statement
+            List<List<string>> found4 = Helper.RegEx(line, @"else if \((.*)\) {", singleLine: true);
+            if (found4.Count == 1 && ics is CS_If && ics.Closed == true)
+            {
+                CS_Else_If cs_eif = new();
+                string condition = found4[0][0];
+
+                cs_eif.condition = evaluateIf(condition);
+                Env.callstack.Add(cs_eif);
+            }
+
+            // else statement
+            List<List<string>> found5 = Helper.RegEx(line, @"else {", singleLine: true);
+            if (found5.Count == 1 && ics is CS_If && ics.Closed == true)
+            {
+                CS_Else cs_e = new();
+                Env.callstack.Add(cs_e);
+            }
+
+            CallstackElement? icl = Env.callstack.LastOrDefault();
+
+            // rm if
+            if (found4.Count == 0 && found5.Count == 0 && icl is CS_If && icl.Closed)
+            {
+                Env.callstack.Remove(icl);
+            }
+        }
+        
+        private bool evaluateIf(string condition)
+        {
+            bool evaluationResult = false;
+
+            List<List<string>> boolean = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+)$");
+            if (boolean.Count == 1)
+            {
+                evaluationResult = EvaluateBool(boolean[0][0]);
+            }
+
+            List<List<string>> negativeBoolean = Helper.RegEx(condition, @"^\!([a-zA-Z0-9_]+)$");
+            if (negativeBoolean.Count == 1)
+            {
+                evaluationResult = !EvaluateBool(negativeBoolean[0][0]);
+            }
+
+            List<List<string>> comparision = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+) == (.+?)$");
+            if (comparision.Count == 1)
+            {
+                throw new NotImplementedException();
+            }
+
+            List<List<string>> negativeComparision = Helper.RegEx(condition, @"^([a-zA-Z0-9_]+) != (.+?)$");
+            if (negativeComparision.Count == 1)
+            {
+                throw new NotImplementedException();
+            }
+
+            Helper.Debug($"Evaluated: {evaluationResult}");
+            return evaluationResult;
         }
 
         private bool EvaluateBool(string found)
@@ -477,15 +551,32 @@ namespace GXCodeInterpreter
             {
                 throw new GXCodeInterpreterError($"Error with saved variable {found}");
             }
+            catch (NullReferenceException)
+            {
+                throw new GXCodeInterpreterError($"Error with saved variable {found}");
+            }
         }
     }
 
-    public class CallstackElement { }
-    
+    public class CallstackElement
+    {
+        public bool Closed = false;
+    }
+
     public class CS_If : CallstackElement
     {
         public List<string> codelines { get; set; } = [];
         public bool condition { get; set; } = false;
+    }
+
+    public class CS_Else_If : CallstackElement
+    {
+        public List<string> codelines { get; set; } = [];
+        public bool condition { get; set; } = false;
+    }
+    public class CS_Else : CallstackElement
+    {
+        public List<string> codelines { get; set; } = [];
     }
     
     public class Entrypoint
