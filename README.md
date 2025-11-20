@@ -111,7 +111,7 @@ switch (name) {
 -   Counting loop:
 
 ```gxc
-iterate(0; 10) {
+repeat (10) {
     str abc = array[i];
 }
 ```
@@ -128,7 +128,7 @@ for (int i = 0; i <= 10; i++) {
 
 ```gxc
 str[] names = ["abc", "def"];
-iterate(names) {
+iterate (names) {
     // ...
 }
 ```

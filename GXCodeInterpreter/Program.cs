@@ -49,6 +49,13 @@ namespace GXCodeInterpreter
                 Console.WriteLine($"Interpreter Error: {e.Message}");
                 Console.ResetColor();
             }
+            catch (GXCodeBreak)
+            {
+                // no errors
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Program was ended intentionally");
+                Console.ResetColor();
+            }
         }
     }
 
@@ -108,7 +115,7 @@ namespace GXCodeInterpreter
 
         public static List<string> Keywords = new()
         {
-            "out", "return"
+            "out", "return", "exit"
         };
     }
 
@@ -452,6 +459,20 @@ namespace GXCodeInterpreter
                         ? output[0].ToString()
                         : output[0]?.ToString() ?? "";
                     Console.WriteLine(print);
+                }
+            }
+
+            // just keyword
+            List<List<string>> found6 = Helper.RegEx(line, @"^([a-zA-Z0-9_]+);$");
+            if (found6.Count == 1)
+            {
+                string keyword = found6[0][0].Trim();
+                if (!Lists.Keywords.Contains(keyword)) throw new GXCodeError("GX0005", $"Unknown keyword {keyword}");
+
+                // hardcoded keywords
+                if (keyword == "exit")
+                {
+                    throw new GXCodeBreak();
                 }
             }
 

@@ -16,6 +16,15 @@ namespace GXCodeInterpreter
     }
 
     [Serializable]
+    public class GXCodeBreak : Exception
+    {
+        public GXCodeBreak()
+            : base("")
+        {
+        }
+    }
+
+    [Serializable]
     public class GXCodeInterpreterError : Exception
     {
         public GXCodeInterpreterError(string message)
