@@ -132,7 +132,7 @@ namespace GXCodeInterpreter
 
         public void StripComments()
         {
-            string pattern = @"// .*?$";
+            string pattern = @"//.*?$";
             string newCode = Regex.Replace(Code, pattern, "", RegexOptions.Multiline);
 
             Code = newCode;
@@ -146,7 +146,6 @@ namespace GXCodeInterpreter
             {
                 string ns = matches[0][0];
                 Env.Namespace = ns;
-                Helper.Debug($"Namespace: {ns}");
             }
             else if (matches.Count < 1)
             {
@@ -200,6 +199,7 @@ namespace GXCodeInterpreter
             {
                 // closing: only treat callstack elements that are currently open (not Closed)
                 CallstackElement? lcs = Env.callstack.LastOrDefault();
+                List<CallstackElement> cs = Env.callstack;
                 if (lcs is CS_If csIf && !csIf.Closed)
                 {
                     csIf.codelines.Add(line);
@@ -239,7 +239,7 @@ namespace GXCodeInterpreter
                             }
                         }
 
-                        Env.callstack.Remove(lcs);
+                        cs.Remove(lcs);
                     }
 
                     return;
@@ -256,7 +256,7 @@ namespace GXCodeInterpreter
                             Execute(codeline, true);
                         }
 
-                        Env.callstack.Remove(lcs);
+                        cs.Remove(lcs);
                     }
 
                     return;
@@ -276,7 +276,7 @@ namespace GXCodeInterpreter
                             }
                         }
 
-                        Env.callstack.Remove(lcs);
+                        cs.Remove(lcs);
                     }
 
                     return;
@@ -289,8 +289,6 @@ namespace GXCodeInterpreter
                     if (foundClosing.Count == 1)
                     {
                         List<object> outerList = Env.variables.Get3By2(csI.array).ToList();
-                        // IEnumerable<object> innerList = (IEnumerable<object>)outerList[0];
-                        // List<object> list = innerList.ToList();
 
                         object listObj = outerList[0];
                         List<object> objects;
@@ -321,7 +319,42 @@ namespace GXCodeInterpreter
                             lastElement = element;
                         }
 
-                        Env.callstack.Remove(lcs);
+                        cs.Remove(lcs);
+                    }
+
+                    return;
+                }
+                else if (lcs is CS_Switch csS && !csS.Closed)
+                {
+                    List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
+                    if (foundClosing.Count == 1)
+                    {
+                        foreach (CS_Case scase in csS.cases)
+                        {
+                            if (csS.variable?.ToString() == scase.value?.ToString())
+                            {
+                                foreach (string codeline in scase.codelines)
+                                {
+                                    Execute(codeline, true);
+                                }
+                            }
+                        }
+
+                        cs.Remove(lcs);
+                    }
+                }
+                else if (lcs is CS_Case csC && !csC.Closed && cs[cs.Count - 2] is CS_Switch)
+                {
+                    csC.codelines.Add(line);
+
+                    List<List<string>> foundClosing = Helper.RegEx(line, @"^}");
+                    if (foundClosing.Count == 1)
+                    {
+                        CS_Switch css = (CS_Switch)cs[cs.Count - 2];
+                        if (!css.cases.Contains(csC)) css.cases.Add(csC);
+
+                        cs.Remove(lcs);
+                        css.Closed = false;
                     }
 
                     return;
@@ -492,8 +525,6 @@ namespace GXCodeInterpreter
                             }
                         }
                         else throw new NotImplementedException($"{type1} is not implemented yet");
-
-                        Helper.Debug($"Variable {name} of type {type} set to {value}");
                         return;
                     }
                     else throw new GXCodeInterpreterError("Error with Lists class");
@@ -581,6 +612,79 @@ namespace GXCodeInterpreter
                 Env.callstack.Remove(icl);
             }
 
+            // switch statement
+            List<List<string>> found10 = Helper.RegEx(line, @"switch \(([a-zA-Z0-9_]+)\) {", singleLine: true);
+            if (found10.Count == 1)
+            {
+                CS_Switch csS = new();
+
+                string var = found10[0][0];
+                if (!Env.variables.Contains2(var))
+                {
+                    throw new GXCodeError("GX0008", $"Unknown variable {var}");
+                }
+
+                Type type = Env.variables.Get1By2(var).ToList()[0];
+                List<Type> allowedTypes = [
+                    typeof(string),
+                    typeof(short),
+                    typeof(double),
+                    typeof(bool)
+                ];
+
+                if (!allowedTypes.Contains(type))
+                {
+                    throw new GXCodeError("GX0010", $"Wrong type {type}");
+                }
+
+                csS.variable = Env.variables.Get3By2(var).ToList()[0];
+
+                Env.callstack.Add(csS);
+            }
+
+            // case statement
+            List<List<string>> found11 = Helper.RegEx(line, @"case (.*) {", singleLine: true);
+            if (found11.Count == 1)
+            {
+                CallstackElement? lcs = Env.callstack.LastOrDefault();
+                lcs.Closed = true;
+                CS_Case csC = new();
+
+                string attr = found11[0][0];
+                object toSet;
+
+                string pattern = @"^""([^""]*)""$";
+                bool isString = Regex.IsMatch(attr, pattern);
+
+                pattern = @"^\d+$";
+                bool isInt = Regex.IsMatch(attr, pattern);
+
+                pattern = @"^\d+\.\d+$";
+                bool isDouble = Regex.IsMatch(attr, pattern);
+
+                pattern = @"^(true|false)$";
+                bool isBool = Regex.IsMatch(attr, pattern);
+
+                if (isString)
+                {
+                    toSet = attr.Trim('"');
+                }
+                else if (isInt || isDouble || isBool)
+                {
+                    toSet = attr;
+                }
+                else
+                {
+                    object value = Env.variables.Get3By2(attr).ToList()[0];
+                    if (value != null) toSet = value;
+                    else throw new GXCodeError("GX0008", $"Unknown variable {attr}");
+                }
+
+                csC.value = toSet;
+
+                Env.callstack.Add(csC);
+            }
+
             // repeat statement
             List<List<string>> found7 = Helper.RegEx(line, @"repeat \((\d+)\) {", singleLine: true);
             if (found7.Count == 1)
@@ -643,8 +747,6 @@ namespace GXCodeInterpreter
             {
                 throw new NotImplementedException();
             }
-
-            Helper.Debug($"Evaluated: {evaluationResult}");
             return evaluationResult;
         }
 
@@ -711,7 +813,19 @@ namespace GXCodeInterpreter
         public List<string> codelines { get; set; } = [];
         public string array { get; set; } = "";
     }
-    
+
+    public class CS_Switch : CallstackElement
+    {
+        public object variable { get; set; } = "";
+        public List<CS_Case> cases { get; set; } = [];
+    }
+
+    public class CS_Case : CallstackElement
+    {
+        public object? value { get; set; } = null;
+        public List<string> codelines { get; set; } = [];
+    }
+
     public class Entrypoint
     {
         public List<string> Lines;

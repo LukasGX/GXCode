@@ -9,12 +9,12 @@ entrypoint() {
     dec[] cnumbers = [1.4, 2.5, 3.8];
     bool[] booleans = [true, false, true, true];
 
-    if (boolean) {
-        out "abc is def";
-    }
-    else {
-        out "abc is not def";
-    }
+    //if (boolean) {
+    //    out "abc is def";
+    //}
+    //else {
+    //    out "abc is not def";
+    //}
 
     repeat (3) {
         out "A";
@@ -22,5 +22,17 @@ entrypoint() {
 
     iterate (numbers) {
         out element;
+    }
+
+    switch (abc) {
+        case "abc" {
+            out "abc is abc";
+        }
+        case "def" {
+            out "abc is def";
+        }
+        case "ghi" {
+            out "abc is ghi";
+        }
     }
 }
