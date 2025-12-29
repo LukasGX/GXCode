@@ -12,11 +12,11 @@ namespace GXCodeInterpreter
         {
             if (args.Contains("--no-debug"))
             {
-                Helper.Debugging = false;
+                // Helper.Debugging = false;
             }
 
             Environment env = new();
-            string content = File.ReadAllText("D:\\Data\\Coding\\GXCodeInterpreter\\GXCodeInterpreter\\program.gxc");
+            string content = File.ReadAllText("/home/lukas/Documents/Coding/C#/GXCode/GXCodeInterpreter/program.gxc");
             Interpreter interpreter = new(content, env);
 
             try
@@ -31,6 +31,8 @@ namespace GXCodeInterpreter
                 {
                     interpreter.Execute(line.Trim());
                 }
+
+                Console.Out.Flush();
 
                 // no errors
                 Console.ForegroundColor = ConsoleColor.Green;
@@ -63,9 +65,9 @@ namespace GXCodeInterpreter
     {
         //                      type,  name,  value
         public TripleDictionary<Type, string, object> variables { get; set; } = new();
-        public TripleDictionary<List<Type>, List<string>, List<object>> dictionaries;
+        public TripleDictionary<List<Type>, List<string>, List<object>> dictionaries { get; set; } = new();
         public string? Namespace { get; set; }
-        public List<CallstackElement> callstack { get; set; } = [];
+        public List<CallstackElement> callstack { get; set; } = new();
     }
 
     public static class Helper
@@ -172,7 +174,7 @@ namespace GXCodeInterpreter
                 // string arguments = matches[0].Groups[1].Value;
                 string instructions = matches[0].Groups[2].Value;
 
-                List<string> lines = instructions.Split("\r\n").ToList();
+                List<string> lines = Regex.Split(instructions, "\r\n|\r|\n").ToList();
                 lines.RemoveAll(s => string.IsNullOrWhiteSpace(s));
 
                 Entrypoint entrypoint = new(lines);
@@ -647,6 +649,7 @@ namespace GXCodeInterpreter
             if (found11.Count == 1)
             {
                 CallstackElement? lcs = Env.callstack.LastOrDefault();
+                if (lcs == null) throw new GXCodeError("GX0011", "Case statement outside of switch");
                 lcs.Closed = true;
                 CS_Case csC = new();
 
@@ -787,43 +790,43 @@ namespace GXCodeInterpreter
 
     public class CS_If : CallstackElement
     {
-        public List<string> codelines { get; set; } = [];
+        public List<string> codelines { get; set; } = new();
         public bool condition { get; set; } = false;
     }
 
     public class CS_Else_If : CallstackElement
     {
-        public List<string> codelines { get; set; } = [];
+        public List<string> codelines { get; set; } = new();
         public bool condition { get; set; } = false;
     }
 
     public class CS_Else : CallstackElement
     {
-        public List<string> codelines { get; set; } = [];
+        public List<string> codelines { get; set; } = new();
     }
 
     public class CS_Repeat : CallstackElement
     {
-        public List<string> codelines { get; set; } = [];
+        public List<string> codelines { get; set; } = new();
         public int times { get; set; }
     }
 
     public class CS_Iterate : CallstackElement
     {
-        public List<string> codelines { get; set; } = [];
+        public List<string> codelines { get; set; } = new();
         public string array { get; set; } = "";
     }
 
     public class CS_Switch : CallstackElement
     {
         public object variable { get; set; } = "";
-        public List<CS_Case> cases { get; set; } = [];
+        public List<CS_Case> cases { get; set; } = new();
     }
 
     public class CS_Case : CallstackElement
     {
         public object? value { get; set; } = null;
-        public List<string> codelines { get; set; } = [];
+        public List<string> codelines { get; set; } = new();
     }
 
     public class Entrypoint
