@@ -4,16 +4,13 @@ using System.Runtime.Serialization;
 namespace GXCodeInterpreter
 {
     [Serializable]
-    public class GXCodeError : Exception
+    public class GXCodeError(string id, string message) : Exception(message)
     {
-        public string Id { get; }
-
-        public GXCodeError(string id, string message)
-            : base(message)
-        {
-            Id = id;
-        }
+        public string Id { get; } = id;
     }
+
+    [Serializable]
+    public class GXCIndeterminableLineError(string line) : GXCodeError("GX0001", $"Indeterminable line structure: {line}") {}
 
     [Serializable]
     public class GXCodeBreak : Exception

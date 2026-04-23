@@ -6,9 +6,9 @@ using System.Linq;
 
 namespace GXCodeInterpreter
 {
-    class Program
+    class OldProgram
     {
-        public static void Main(string[] args)
+        public static void Start(string[] args)
         {
             if (args.Contains("--no-debug"))
             {
@@ -547,7 +547,7 @@ namespace GXCodeInterpreter
                 // hardcoded keywords
                 if (keyword == "out" && isString)
                 {
-                    Console.WriteLine(attr);
+                    Console.WriteLine(attr.TrimStart('"').TrimEnd('"'));
                 }
                 else if (keyword == "out" && !isString && Env.variables.Contains2(attr))
                 {
@@ -768,6 +768,7 @@ namespace GXCodeInterpreter
             string? value = Env.variables.Get3By2(found).ToList()[0].ToString();
             try
             {
+                if (value == null) throw new ArgumentException("");
                 bool result = bool.Parse(value);
                 if (result) return true;
                 else return false;
