@@ -15,18 +15,67 @@ namespace GXCodeInterpreter
                 List<string> lines = GXCodeHelper.SplitCode(content);
                 GXCodeEnvironment env = new(content, lines);
 
+                Callstack cs = new();
+                List<int> cs_ids = [];
+                int lastCSID = -1;
+
                 // main loop
                 foreach (string line in env.Lines)
                 {
                     LineType type = GXCodeInterpreter.GetLineType(line);
-                    if (type == LineType.UNKNOWN) throw new GXCIndeterminableLineError(line);
-                    if (type == LineType.COMMENT || type == LineType.NEGLIGIBLE) continue;
+
+                    switch (type)
+                    {
+                        case LineType.UNKNOWN:
+                            throw new GXCIndeterminableLineError(line);
+                        case LineType.COMMENT:
+                            continue;
+                        case LineType.NEGLIGIBLE:
+                            continue;
+                        case LineType.NAMESPACE_DEFINITION:
+                            env.Namespace = GXCodeInterpreter.GetNS(line);
+                            break;
+                        case LineType.ENTRYPOINT_DEFINITION_START:
+                            bool hasEntrypoint = env.blocks.innerDict.Keys.Any(key => key.Item2 is GXC_CS_ENTRYPOINT);
+                            if (hasEntrypoint)
+                            {
+                                throw new GXCMultipleEntrypointError();
+                            }
+
+                            GXC_CS_ENTRYPOINT n = new(lastCSID + 1);
+                            env.blocks.Add(lastCSID + 1, n, []);
+                            lastCSID += 1;
+
+                            cs.CS.Add(n);
+                            cs_ids.Add(n.ID);
+                            break;
+                        case LineType.CLOSING:
+                            GXC_CS_ELEMENT last;
+                            try
+                            {
+                                last = cs.CS.Last();
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                throw new GXCNothingToCloseError();
+                            }
+
+                            cs.CS.Remove(last);
+                            cs_ids.Remove(last.ID);
+                            break;
+                    }
                 }
             }
             catch (GXCodeError e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"Error {e.Id}: {e.Message}");
+                Console.ResetColor();
+            }
+            catch (GXCodeInterpreterError e)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Interpreter Error: ${e.Message}");
                 Console.ResetColor();
             }
         }
@@ -37,6 +86,7 @@ namespace GXCodeInterpreter
         public string Code { get; set; } = code;
         public List<string> Lines { get; set; } = lines;
         public string Namespace { get; set; } = "";
+        public TripleDictionary<int, GXC_CS_ELEMENT, List<string>> blocks = new();
     }
 
     class GXCodeHelper
@@ -136,5 +186,32 @@ namespace GXCodeInterpreter
             // unknown
             return LineType.UNKNOWN;
         }
+
+        public static string GetNS(string line)
+        {
+            string pattern = @"^#ns\s+([a-zA-Z0-9]+)$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string ns = match.Groups[1].Value;
+                return ns;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect ns");
+            }
+        }
     }
+
+    public class Callstack ()
+    {
+        public List<GXC_CS_ELEMENT> CS { get; set; } = [];
+    }
+
+    public class GXC_CS_ELEMENT(int id)
+    {
+        public int ID = id;
+    }
+    public class GXC_CS_ENTRYPOINT(int id) : GXC_CS_ELEMENT(id) {}
 }

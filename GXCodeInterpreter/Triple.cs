@@ -1,6 +1,6 @@
 public class TripleDictionary<T1, T2, T3>
 {
-    private Dictionary<(T1, T2, T3), bool> innerDict = new();
+    public Dictionary<(T1, T2, T3), bool> innerDict = new();
 
     public void Add(T1 key1, T2 key2, T3 key3)
     {
