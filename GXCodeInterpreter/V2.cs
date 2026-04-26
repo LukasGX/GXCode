@@ -19,16 +19,29 @@ namespace GXCodeInterpreter
                 List<int> cs_ids = [];
                 int lastCSID = -1;
 
+                GXC_CS_ELEMENT? inMem = null;
+
+                bool inMultiLineComment = false;
+
                 // main loop
-                foreach (string line in env.Lines)
+                for (int i = 0; i < env.Lines.Count; i++)
                 {
-                    LineType type = GXCodeInterpreter.GetLineType(line);
+                    string line = env.Lines[i];
+                    int ri = i + 1;
+                    LineType type = GXCodeInterpreter.GetLineType(line, inMultiLineComment);
+
+                    // Console.WriteLine($"Line {ri}: {line} (type: {type})");
+
+                    GXC_CS_ELEMENT? last = cs.CS.LastOrDefault();
 
                     switch (type)
                     {
                         case LineType.UNKNOWN:
-                            throw new GXCIndeterminableLineError(line);
+                            throw new GXCIndeterminableLineError(line, ri);
                         case LineType.COMMENT:
+                            continue;
+                        case LineType.MULTILINE_COMMENT_INDICATOR:
+                            inMultiLineComment = !inMultiLineComment;
                             continue;
                         case LineType.NEGLIGIBLE:
                             continue;
@@ -36,10 +49,15 @@ namespace GXCodeInterpreter
                             env.Namespace = GXCodeInterpreter.GetNS(line);
                             break;
                         case LineType.ENTRYPOINT_DEFINITION_START:
+                            if (last is not null)
+                            {
+                                throw new GXCNestedEntrypointError(ri, last.GetType().Name);
+                            }
+
                             bool hasEntrypoint = env.blocks.innerDict.Keys.Any(key => key.Item2 is GXC_CS_ENTRYPOINT);
                             if (hasEntrypoint)
                             {
-                                throw new GXCMultipleEntrypointError();
+                                throw new GXCMultipleEntrypointError(ri);
                             }
 
                             GXC_CS_ENTRYPOINT n = new(lastCSID + 1);
@@ -49,27 +67,91 @@ namespace GXCodeInterpreter
                             cs.CS.Add(n);
                             cs_ids.Add(n.ID);
                             break;
-                        case LineType.CLOSING:
-                            GXC_CS_ELEMENT last;
-                            try
+                        case LineType.IF_START:
+                            if (last is null)
                             {
-                                last = cs.CS.Last();
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_IF).Name, false);
                             }
-                            catch (InvalidOperationException)
+                            else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCNothingToCloseError();
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_IF).Name, true);
                             }
 
+                            GXC_CS_IF n_if = new(lastCSID + 1);
+                            env.blocks.Add(lastCSID + 1, n_if, []);
+                            lastCSID += 1;
+
+                            cs.CS.Add(n_if);
+                            cs_ids.Add(n_if.ID);
+                            break;
+                        case LineType.ELSE_IF_START:
+                            if (inMem is not GXC_CS_IF && inMem is not GXC_CS_ELSE_IF)
+                            {
+                                throw new GXCStrayElseIfError(ri);
+                            }
+
+                            GXC_CS_ELSE_IF n_else_if = new(lastCSID + 1);
+                            env.blocks.Add(lastCSID + 1, n_else_if, []);
+                            lastCSID += 1;
+
+                            cs.CS.Add(n_else_if);
+                            cs_ids.Add(n_else_if.ID);
+                            break;
+                        case LineType.ELSE_START:
+                            if (inMem is not GXC_CS_IF && inMem is not GXC_CS_ELSE_IF)
+                            {
+                                throw new GXCStrayElseError(ri);
+                            }
+
+                            GXC_CS_ELSE n_else = new(lastCSID + 1);
+                            env.blocks.Add(lastCSID + 1, n_else, []);
+                            lastCSID += 1;
+                            
+                            cs.CS.Add(n_else);
+                            cs_ids.Add(n_else.ID);
+                            break;
+                        case LineType.SWITCH_START:
+                            GXC_CS_SWITCH n_switch = new(lastCSID + 1);
+                            env.blocks.Add(lastCSID + 1, n_switch, []);
+                            lastCSID += 1;
+
+                            cs.CS.Add(n_switch);
+                            cs_ids.Add(n_switch.ID);
+                            break;
+                        case LineType.CASE_START:
+                            if (cs.CS.Last() is not GXC_CS_SWITCH)
+                            {
+                                throw new GXCStrayCaseError(ri);
+                            }
+
+                            GXC_CS_CASE n_case = new(lastCSID + 1);
+                            env.blocks.Add(lastCSID + 1, n_case, []);
+                            lastCSID += 1;
+
+                            cs.CS.Add(n_case);
+                            cs_ids.Add(n_case.ID);
+                            break;
+                        case LineType.CLOSING:
+                            if (last is null)
+                            {
+                                throw new GXCNothingToCloseError(ri);
+                            }
+
+                            inMem = last;
                             cs.CS.Remove(last);
                             cs_ids.Remove(last.ID);
                             break;
                     }
                 }
+
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Program ran without any errors");
+                Console.ResetColor();
             }
             catch (GXCodeError e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error {e.Id}: {e.Message}");
+                Console.WriteLine($"Error {e.Id}: {e.Message} at line {e.LineNr}");
                 Console.ResetColor();
             }
             catch (GXCodeInterpreterError e)
@@ -101,6 +183,7 @@ namespace GXCodeInterpreter
 
     public enum LineType
     {
+        MULTILINE_COMMENT_INDICATOR,
         COMMENT,
         NAMESPACE_DEFINITION,
         METHOD_DEFINITION_START,
@@ -125,8 +208,15 @@ namespace GXCodeInterpreter
 
     class GXCodeInterpreter
     {
-        public static LineType GetLineType(string line)
+        public static LineType GetLineType(string line, bool inMultiLineComment)
         {
+            // multiline comment indicator
+            string multiCommentPattern = @"^\s*\/\/\/.*$";
+            if (Regex.IsMatch(line, multiCommentPattern)) return LineType.MULTILINE_COMMENT_INDICATOR;
+
+            // skip if in multiline comment
+            if (inMultiLineComment) return LineType.COMMENT;
+
             // negligible
             if (line.Trim() == "") return LineType.NEGLIGIBLE;
 
@@ -214,4 +304,14 @@ namespace GXCodeInterpreter
         public int ID = id;
     }
     public class GXC_CS_ENTRYPOINT(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_IF(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_ELSE_IF(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_ELSE(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_SWITCH(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_CASE(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_REPEAT(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_ITERATE(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_WHILE(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_CLASS(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_METHOD(int id) : GXC_CS_ELEMENT(id) {}
 }
