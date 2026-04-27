@@ -283,32 +283,9 @@ namespace GXCodeInterpreter
                     }
                 }
 
-                // start with the entrypoint block
+                // begin with the entrypoint block
                 GXC_CS_ENTRYPOINT? entrypoint = env.blocks.Values.FirstOrDefault(val => val is GXC_CS_ENTRYPOINT) as GXC_CS_ENTRYPOINT ?? throw new GXCMissingEntrypointError(null);
-                scopeStack.Push(new Scope(scopeStack.Peek()));
-
-                for (int i = 0; i < entrypoint.Lines.Count; i++)
-                {
-                    string line = entrypoint.Lines[i];
-                    ShortLineType type = GXCodeInterpreter.GetShortLineType(line);
-                    Console.WriteLine($"Line {i + 1} of entrypoint: {line} (type: {type})");
-
-                    switch (type)
-                    {
-                        case ShortLineType.UNKNOWN:
-                            throw new GXCodeInterpreterError($"Undetected indeterminable line structure of {line}");
-                        case ShortLineType.BUILTIN_OPERATION:
-                            GXCodeInterpreter.ExecuteBuiltinOperation(line);
-                            break;
-                        case ShortLineType.VARIABLE_DECLARATION:
-                            GXCodeInterpreter.DeclareVariable(line, i+1, $"{entrypoint.GetType().Name}#{entrypoint.ID}");
-                            break;
-                        case ShortLineType.VARIABLE_ASSIGNMENT:
-                            GXCodeInterpreter.AssignVariable(line, i+1, $"{entrypoint.GetType().Name}#{entrypoint.ID}");
-                            break;
-                    }
-                }
-                scopeStack.Pop();
+                GXCodeInterpreter.ExecuteBlock(env, entrypoint);
 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Program ran without any errors");
@@ -661,6 +638,237 @@ namespace GXCodeInterpreter
             else
             {
                 throw new GXCodeInterpreterError("Could not detect while condition");
+            }
+        }
+
+        public static bool EvaluateCondition(GXCodeEnvironment env, string condition)
+        {
+            condition = condition.Trim();
+
+            // match comparisons: left <op> right
+            var cmp = Regex.Match(condition, "^(.*?)(==|!=|<=|>=|<|>)(.*)$");
+            if (!cmp.Success)
+            {
+                // single token: treat as bool variable or literal
+                string token = condition;
+                if (bool.TryParse(token, out var bv)) return bv;
+                if (GXCodeProgram.scopeStack.Peek().TryGet(token, out var val, out var type) && type == "bool")
+                {
+                    return val is bool b && b;
+                }
+                throw new GXCodeInterpreterError($"Could not evaluate condition: {condition}");
+            }
+
+            string left = cmp.Groups[1].Value.Trim();
+            string op = cmp.Groups[2].Value;
+            string right = cmp.Groups[3].Value.Trim();
+
+            object Resolve(string token)
+            {
+                if (token.StartsWith("\"") && token.EndsWith("\"")) return token.Substring(1, token.Length - 2);
+                if (bool.TryParse(token, out var b)) return b;
+                if (int.TryParse(token, out var i)) return i;
+                if (decimal.TryParse(token, out var d)) return d;
+                // variable lookup
+                if (GXCodeProgram.scopeStack.Peek().TryGet(token, out var v, out var t)) return v;
+                throw new GXCodeInterpreterError($"Unknown identifier in condition: {token}");
+            }
+
+            var lval = Resolve(left);
+            var rval = Resolve(right);
+
+            // numeric comparison if both numbers
+            bool bothNumeric = (lval is int || lval is decimal) && (rval is int || rval is decimal);
+            if (bothNumeric)
+            {
+                decimal ln = Convert.ToDecimal(lval);
+                decimal rn = Convert.ToDecimal(rval);
+                return op switch
+                {
+                    "==" => ln == rn,
+                    "!=" => ln != rn,
+                    "<" => ln < rn,
+                    ">" => ln > rn,
+                    "<=" => ln <= rn,
+                    ">=" => ln >= rn,
+                    _ => throw new GXCodeInterpreterError($"Unsupported operator {op}")
+                };
+            }
+
+            // boolean comparison
+            if (lval is bool lb && rval is bool rb)
+            {
+                return op switch
+                {
+                    "==" => lb == rb,
+                    "!=" => lb != rb,
+                    _ => throw new GXCodeInterpreterError($"Unsupported boolean operator {op}")
+                };
+            }
+
+            // fallback to string comparison
+            string ls = lval?.ToString() ?? "";
+            string rs = rval?.ToString() ?? "";
+            return op switch
+            {
+                "==" => string.Equals(ls, rs, StringComparison.Ordinal),
+                "!=" => !string.Equals(ls, rs, StringComparison.Ordinal),
+                _ => throw new GXCodeInterpreterError($"Unsupported operator {op} for string operands")
+            };
+        }
+
+        public static void ExecuteBlock(GXCodeEnvironment env, GXC_CS_ELEMENT block)
+        {
+            GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+
+            if (block is GXC_CS_IF ifBlock)
+            {
+                Console.WriteLine($"Evaluating IF condition: {ifBlock.Condition}");
+                bool isTrue = EvaluateCondition(env, ifBlock.Condition);
+                if (!isTrue)
+                {
+                    Console.WriteLine("Condition is false, skipping IF block");
+                    GXCodeProgram.scopeStack.Pop();
+                    return;
+                }
+            }
+            else if (block is GXC_CS_ELSE_IF elseIfBlock)
+            {
+                Console.WriteLine($"Evaluating ELSE IF condition: {elseIfBlock.Condition}");
+                bool isTrue = EvaluateCondition(env, elseIfBlock.Condition);
+                if (!isTrue)
+                {
+                    Console.WriteLine("Condition is false, skipping ELSE IF block");
+                    GXCodeProgram.scopeStack.Pop();
+                    return;
+                }
+            }
+            else if (block is GXC_CS_SWITCH switchBlock)
+            {
+                if (!GXCodeProgram.scopeStack.Peek().TryGet(switchBlock.Variable, out var switchVal, out var switchType))
+                {
+                    throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
+                }
+
+                bool caseMatched = false;
+                foreach (var line in block.Lines)
+                {
+                    if (line.StartsWith("[BLOCK "))
+                    {
+                        int caseId = int.Parse(Regex.Match(line, @"^\s*\[BLOCK\s+([0-99999999999]+)\]\s*$").Groups[1].Value);
+                        if (env.blocks[caseId] is GXC_CS_CASE caseBlock)
+                        {
+                            string caseValue = caseBlock.Value.Trim();
+                            if ((caseValue.StartsWith("\"") && caseValue.EndsWith("\"") && caseValue.Substring(1, caseValue.Length - 2) == switchVal?.ToString()) ||
+                                caseValue == switchVal?.ToString())
+                            {
+                                Console.WriteLine($"Switch case matched: {caseValue}");
+                                ExecuteBlock(env, caseBlock);
+                                caseMatched = true;
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if (!caseMatched)
+                {
+                    Console.WriteLine("No matching switch case found, skipping switch block");
+                    GXCodeProgram.scopeStack.Pop();
+                    return;
+                }
+            }
+            else if (block is GXC_CS_REPEAT repeatBlock)
+            {
+                // repeatBlock.Variable can be an integer literal or a variable name
+                string token = repeatBlock.Variable?.Trim() ?? "";
+
+                if (!int.TryParse(token, out int iterations))
+                {
+                    if (!GXCodeProgram.scopeStack.Peek().TryGet(token, out var repeatVal, out var repeatType))
+                    {
+                        throw new GXCodeInterpreterError($"Unknown variable {token} in repeat statement");
+                    }
+                    if (repeatType != "int")
+                    {
+                        throw new GXCodeInterpreterError($"Repeat variable {token} must be of type int");
+                    }
+                    iterations = (int)repeatVal;
+                }
+
+                for (int i = 0; i < iterations; i++)
+                {
+                    Console.WriteLine($"Repeat iteration {i + 1} of {iterations}");
+                    // create an iteration-local scope
+                    GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+                    ExecuteBlockBody(env, repeatBlock);
+                    GXCodeProgram.scopeStack.Pop();
+                }
+                GXCodeProgram.scopeStack.Pop();
+                return;
+            }
+            else if (block is GXC_CS_ITERATE iterateBlock)
+            {
+                if (!GXCodeProgram.scopeStack.Peek().TryGet(iterateBlock.Variable, out var iterateVal, out var iterateType))
+                {
+                    throw new GXCodeInterpreterError($"Unknown variable {iterateBlock.Variable} in iterate statement");
+                }
+                if (iterateType != "str[]" && iterateType != "int[]" && iterateType != "dec[]" && iterateType != "bool[]")
+                {
+                    throw new GXCodeInterpreterError($"Iterate variable {iterateBlock.Variable} must be an array");
+                }
+
+                IEnumerable<object> collection = iterateVal switch
+                {
+                    List<string> sList => sList.Cast<object>(),
+                    List<int> iList => iList.Cast<object>(),
+                    List<decimal> dList => dList.Cast<object>(),
+                    List<bool> bList => bList.Cast<object>(),
+                    _ => throw new GXCodeInterpreterError($"Unsupported iterate variable type {iterateType}")
+                };
+
+                foreach (var item in collection)
+                {
+                    Console.WriteLine($"Iterating item: {item}");
+                    GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+                    GXCodeProgram.scopeStack.Peek().Set("element", item, iterateType.Substring(0, iterateType.Length - 2));
+                    ExecuteBlockBody(env, iterateBlock);
+                    GXCodeProgram.scopeStack.Pop();
+                }
+                return;
+            }
+
+            ExecuteBlockBody(env, block);
+            GXCodeProgram.scopeStack.Pop();
+        }
+
+        // Execute the lines inside a block (helper extracted to avoid accidental recursion)
+        public static void ExecuteBlockBody(GXCodeEnvironment env, GXC_CS_ELEMENT block)
+        {
+            for (int i = 0; i < block.Lines.Count; i++)
+            {
+                string line = block.Lines[i];
+                ShortLineType type = GetShortLineType(line);
+                Console.WriteLine($"Line {i + 1} of {block.GetType().Name}#{block.ID}: {line} (type: {type})");
+
+                switch (type)
+                {
+                    case ShortLineType.UNKNOWN:
+                        throw new GXCodeInterpreterError($"Undetected indeterminable line structure of {line}");
+                    case ShortLineType.BUILTIN_OPERATION:
+                        ExecuteBuiltinOperation(line);
+                        break;
+                    case ShortLineType.VARIABLE_DECLARATION:
+                        DeclareVariable(line, i+1, $"{block.GetType().Name}#{block.ID}");
+                        break;
+                    case ShortLineType.VARIABLE_ASSIGNMENT:
+                        AssignVariable(line, i+1, $"{block.GetType().Name}#{block.ID}");
+                        break;
+                    case ShortLineType.BLOCK_INDICATOR:
+                        int nestedId = int.Parse(Regex.Match(line, @"^\s*\[BLOCK\s+([0-99999999999]+)\]\s*$").Groups[1].Value);
+                        ExecuteBlock(env, env.blocks[nestedId]);
+                        break;
+                }
             }
         }
 
