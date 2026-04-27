@@ -28,7 +28,6 @@ entrypoint() {
         }
     }
 
-    ///
     repeat (3) {
         out "A";
     }
@@ -36,5 +35,4 @@ entrypoint() {
     iterate (numbers) {
         out element;
     }
-    ///
 }

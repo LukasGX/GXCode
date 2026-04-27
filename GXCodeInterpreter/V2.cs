@@ -23,7 +23,7 @@ namespace GXCodeInterpreter
 
                 bool inMultiLineComment = false;
 
-                // main loop
+                // split the code and save into env.blocks
                 for (int i = 0; i < env.Lines.Count; i++)
                 {
                     string line = env.Lines[i];
@@ -54,18 +54,18 @@ namespace GXCodeInterpreter
                                 throw new GXCNestedEntrypointError(ri, last.GetType().Name);
                             }
 
-                            bool hasEntrypoint = env.blocks.innerDict.Keys.Any(key => key.Item2 is GXC_CS_ENTRYPOINT);
+                            bool hasEntrypoint = env.blocks.Values.Any(val => val is GXC_CS_ENTRYPOINT);
                             if (hasEntrypoint)
                             {
                                 throw new GXCMultipleEntrypointError(ri);
                             }
 
-                            GXC_CS_ENTRYPOINT n = new(lastCSID + 1);
-                            env.blocks.Add(lastCSID + 1, n, []);
+                            GXC_CS_ENTRYPOINT n_entrypoint = new(lastCSID + 1);
+                            env.blocks.Add(lastCSID + 1, n_entrypoint);
                             lastCSID += 1;
 
-                            cs.CS.Add(n);
-                            cs_ids.Add(n.ID);
+                            cs.CS.Add(n_entrypoint);
+                            cs_ids.Add(n_entrypoint.ID);
                             break;
                         case LineType.IF_START:
                             if (last is null)
@@ -77,59 +77,166 @@ namespace GXCodeInterpreter
                                 throw new GXCStrayBlockError(ri, typeof(GXC_CS_IF).Name, true);
                             }
 
-                            GXC_CS_IF n_if = new(lastCSID + 1);
-                            env.blocks.Add(lastCSID + 1, n_if, []);
+                            string IfCondition = GXCodeInterpreter.GetIfCondition(line);
+                            GXC_CS_IF n_if = new(lastCSID + 1, IfCondition);
+                            env.blocks.Add(lastCSID + 1, n_if);
                             lastCSID += 1;
 
                             cs.CS.Add(n_if);
                             cs_ids.Add(n_if.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_if.ID}]");
                             break;
                         case LineType.ELSE_IF_START:
+                            if (last is null)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE_IF).Name, false);
+                            }
+                            else if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE_IF).Name, true);
+                            }
                             if (inMem is not GXC_CS_IF && inMem is not GXC_CS_ELSE_IF)
                             {
                                 throw new GXCStrayElseIfError(ri);
                             }
 
-                            GXC_CS_ELSE_IF n_else_if = new(lastCSID + 1);
-                            env.blocks.Add(lastCSID + 1, n_else_if, []);
+                            string ElseIfCondition = GXCodeInterpreter.GetElseIfCondition(line);
+                            GXC_CS_ELSE_IF n_else_if = new(lastCSID + 1, ElseIfCondition);
+                            env.blocks.Add(lastCSID + 1, n_else_if);
                             lastCSID += 1;
 
                             cs.CS.Add(n_else_if);
                             cs_ids.Add(n_else_if.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_else_if.ID}]");
                             break;
                         case LineType.ELSE_START:
+                            if (last is null)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE).Name, false);
+                            }
+                            else if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE).Name, true);
+                            }
                             if (inMem is not GXC_CS_IF && inMem is not GXC_CS_ELSE_IF)
                             {
                                 throw new GXCStrayElseError(ri);
                             }
 
                             GXC_CS_ELSE n_else = new(lastCSID + 1);
-                            env.blocks.Add(lastCSID + 1, n_else, []);
+                            env.blocks.Add(lastCSID + 1, n_else);
                             lastCSID += 1;
                             
                             cs.CS.Add(n_else);
                             cs_ids.Add(n_else.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_else.ID}]");
                             break;
                         case LineType.SWITCH_START:
-                            GXC_CS_SWITCH n_switch = new(lastCSID + 1);
-                            env.blocks.Add(lastCSID + 1, n_switch, []);
+                            if (last is null)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_SWITCH).Name, false);
+                            }
+                            else if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_SWITCH).Name, true);
+                            }
+
+                            string switchVar = GXCodeInterpreter.GetSwitchVariable(line);
+                            GXC_CS_SWITCH n_switch = new(lastCSID + 1, switchVar);
+                            env.blocks.Add(lastCSID + 1, n_switch);
                             lastCSID += 1;
 
                             cs.CS.Add(n_switch);
                             cs_ids.Add(n_switch.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_switch.ID}]");
                             break;
                         case LineType.CASE_START:
-                            if (cs.CS.Last() is not GXC_CS_SWITCH)
+                            if (last is null)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_CASE).Name, false);
+                            }
+                            else if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_CASE).Name, true);
+                            }
+                            if (last is not GXC_CS_SWITCH)
                             {
                                 throw new GXCStrayCaseError(ri);
                             }
 
-                            GXC_CS_CASE n_case = new(lastCSID + 1);
-                            env.blocks.Add(lastCSID + 1, n_case, []);
+                            string caseValue = GXCodeInterpreter.GetCaseValue(line);
+                            GXC_CS_CASE n_case = new(lastCSID + 1, caseValue);
+                            env.blocks.Add(lastCSID + 1, n_case);
                             lastCSID += 1;
 
                             cs.CS.Add(n_case);
                             cs_ids.Add(n_case.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_case.ID}]");
+                            break;
+                        case LineType.REPEAT_START:
+                            if (last is null)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_REPEAT).Name, false);
+                            }
+                            else if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_REPEAT).Name, true);
+                            }
+
+                            string repeatVar = GXCodeInterpreter.GetRepeatVariable(line);
+                            GXC_CS_REPEAT n_repeat = new(lastCSID + 1, repeatVar);
+                            env.blocks.Add(lastCSID + 1, n_repeat);
+                            lastCSID += 1;
+
+                            cs.CS.Add(n_repeat);
+                            cs_ids.Add(n_repeat.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_repeat.ID}]");
+                            break;
+                        case LineType.ITERATE_START:
+                            if (last is null)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ITERATE).Name, false);
+                            }
+                            else if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ITERATE).Name, true);
+                            }
+
+                            string iterateVar = GXCodeInterpreter.GetIterateVariable(line);
+                            GXC_CS_ITERATE n_iterate = new(lastCSID + 1, iterateVar);
+                            env.blocks.Add(lastCSID + 1, n_iterate);
+                            lastCSID += 1;
+
+                            cs.CS.Add(n_iterate);
+                            cs_ids.Add(n_iterate.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_iterate.ID}]");
+                            break;
+                        case LineType.WHILE_START:
+                            if (last is null)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_WHILE).Name, false);
+                            }
+                            else if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_WHILE).Name, true);
+                            }
+
+                            string whileCondition = GXCodeInterpreter.GetWhileCondition(line);
+                            GXC_CS_ITERATE n_while = new(lastCSID + 1, whileCondition);
+                            env.blocks.Add(lastCSID + 1, n_while);
+                            lastCSID += 1;
+                            
+                            cs.CS.Add(n_while);
+                            cs_ids.Add(n_while.ID);
+
+                            env.blocks[last.ID].Lines.Add($"[BLOCK {n_while.ID}]");
                             break;
                         case LineType.CLOSING:
                             if (last is null)
@@ -140,6 +247,34 @@ namespace GXCodeInterpreter
                             inMem = last;
                             cs.CS.Remove(last);
                             cs_ids.Remove(last.ID);
+                            break;
+                        case LineType.BUILTIN_OPERATION:
+                            if (last is null)
+                            {
+                                throw new GXCStrayBuiltinOperationError(ri, false);
+                            }
+                            if (last is GXC_CS_CLASS)
+                            {
+                                throw new GXCStrayBuiltinOperationError(ri, true);
+                            }
+
+                            env.blocks[last.ID].Lines.Add(line);
+                            break;
+                        case LineType.VARIABLE_DECLARATION:
+                            if (last is null)
+                            {
+                                throw new GXCStrayVariableDeclarationError(ri);
+                            }
+
+                            env.blocks[last.ID].Lines.Add(line);
+                            break;
+                        case LineType.VARIABLE_ASSIGNMENT:
+                            if (last is null)
+                            {
+                                throw new GXCStrayVariableAssignmentError(ri);
+                            }
+
+                            env.blocks[last.ID].Lines.Add(line);
                             break;
                     }
                 }
@@ -168,7 +303,7 @@ namespace GXCodeInterpreter
         public string Code { get; set; } = code;
         public List<string> Lines { get; set; } = lines;
         public string Namespace { get; set; } = "";
-        public TripleDictionary<int, GXC_CS_ELEMENT, List<string>> blocks = new();
+        public Dictionary<int, GXC_CS_ELEMENT> blocks = new();
     }
 
     class GXCodeHelper
@@ -270,8 +405,12 @@ namespace GXCodeInterpreter
             if (Regex.IsMatch(line, builtinPattern)) return LineType.BUILTIN_OPERATION;
 
             // variable declaration
-            string assignmentPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
-            if (Regex.IsMatch(line, assignmentPattern)) return LineType.VARIABLE_DECLARATION;
+            string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
+            if (Regex.IsMatch(line, declarationPattern)) return LineType.VARIABLE_DECLARATION;
+
+            // variable assignment
+            string assignmentPattern = @"^\s*[a-zA-Z0-9]+\s*=\s*.*;$";
+            if (Regex.IsMatch(line, assignmentPattern)) return LineType.VARIABLE_ASSIGNMENT;
 
             // unknown
             return LineType.UNKNOWN;
@@ -292,6 +431,118 @@ namespace GXCodeInterpreter
                 throw new GXCodeInterpreterError("Could not detect ns");
             }
         }
+
+        public static string GetIfCondition(string line)
+        {
+            string pattern = @"^\s*if\s*\(([^""']*)\)\s*\{$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string condition = match.Groups[1].Value;
+                return condition;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect if condition");
+            }
+        }
+
+        public static string GetElseIfCondition(string line)
+        {
+            string pattern = @"^\s*else\s+if\s*\(([^""']*)\)\s*\{$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string condition = match.Groups[1].Value;
+                return condition;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect else if condition");
+            }
+        }
+
+        public static string GetSwitchVariable(string line)
+        {
+            string pattern = @"^\s*switch\s*\(([a-zA-Z0-9]+)\)\s*\{$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string variable = match.Groups[1].Value;
+                return variable;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect switch variable");
+            }
+        }
+
+        public static string GetCaseValue(string line)
+        {
+            string pattern = @"^\s*case\s+(.*?)\s*\{$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string value = match.Groups[1].Value;
+                return value;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect case value");
+            }
+        }
+
+        public static string GetRepeatVariable(string line)
+        {
+            string pattern = @"^\s*repeat\s*\(([a-zA-Z0-9]+)\)\s*\{$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string variable = match.Groups[1].Value;
+                return variable;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect repeat variable");
+            }
+        }
+
+        public static string GetIterateVariable(string line)
+        {
+            string pattern = @"^\s*iterate\s*\(([a-zA-Z0-9]+)\)\s*\{$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string variable = match.Groups[1].Value;
+                return variable;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect iterate variable");
+            }
+        }
+
+        public static string GetWhileCondition(string line)
+        {
+            string pattern = @"^\s*while\s*\(([^""']*)\)\s*\{$";
+            Match match = Regex.Match(line, pattern);
+
+            if (match.Success)
+            {
+                string condition = match.Groups[1].Value;
+                return condition;
+            }
+            else
+            {
+                throw new GXCodeInterpreterError("Could not detect while condition");
+            }
+        }
     }
 
     public class Callstack ()
@@ -302,16 +553,38 @@ namespace GXCodeInterpreter
     public class GXC_CS_ELEMENT(int id)
     {
         public int ID = id;
+        public List<string> Lines { get; set; } = [];
     }
     public class GXC_CS_ENTRYPOINT(int id) : GXC_CS_ELEMENT(id) {}
-    public class GXC_CS_IF(int id) : GXC_CS_ELEMENT(id) {}
-    public class GXC_CS_ELSE_IF(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_IF(int id, string condition) : GXC_CS_ELEMENT(id)
+    {
+        public string Condition { get; set; } = condition;
+    }
+    public class GXC_CS_ELSE_IF(int id, string condition) : GXC_CS_ELEMENT(id)
+    {
+        public string Condition { get; set; } = condition;
+    }
     public class GXC_CS_ELSE(int id) : GXC_CS_ELEMENT(id) {}
-    public class GXC_CS_SWITCH(int id) : GXC_CS_ELEMENT(id) {}
-    public class GXC_CS_CASE(int id) : GXC_CS_ELEMENT(id) {}
-    public class GXC_CS_REPEAT(int id) : GXC_CS_ELEMENT(id) {}
-    public class GXC_CS_ITERATE(int id) : GXC_CS_ELEMENT(id) {}
-    public class GXC_CS_WHILE(int id) : GXC_CS_ELEMENT(id) {}
+    public class GXC_CS_SWITCH(int id, string var) : GXC_CS_ELEMENT(id)
+    {
+        public string Variable { get; set; } = var;
+    }
+    public class GXC_CS_CASE(int id, string val) : GXC_CS_ELEMENT(id)
+    {
+        public string Value { get; set; } = val;
+    }
+    public class GXC_CS_REPEAT(int id, string var) : GXC_CS_ELEMENT(id)
+    {
+        public string Variable { get; set; } = var;
+    }
+    public class GXC_CS_ITERATE(int id, string var) : GXC_CS_ELEMENT(id)
+    {
+        public string Variable { get; set; } = var;
+    }
+    public class GXC_CS_WHILE(int id, string condition) : GXC_CS_ELEMENT(id)
+    {
+        public string Condition { get; set; } = condition;
+    }
     public class GXC_CS_CLASS(int id) : GXC_CS_ELEMENT(id) {}
     public class GXC_CS_METHOD(int id) : GXC_CS_ELEMENT(id) {}
 }

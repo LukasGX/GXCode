@@ -35,6 +35,15 @@ namespace GXCodeInterpreter
     public class GXCStrayBlockError(int lineNr, string blockType, bool classLevel) : GXCodeError("GX0008", $"{blockType} block not allowed at {(classLevel ? "class" : "top")} level", lineNr) {}
 
     [Serializable]
+    public class GXCStrayBuiltinOperationError(int lineNr, bool classLevel) : GXCodeError("GX0009", $"Built-in operations are not allowed at {(classLevel ? "class" : "top")} level", lineNr) {}
+
+    [Serializable]
+    public class GXCStrayVariableDeclarationError(int lineNr) : GXCodeError("GX0010", $"Variable declarations are not allowed at top level", lineNr) {}
+
+    [Serializable]
+    public class GXCStrayVariableAssignmentError(int lineNr) : GXCodeError("GX0011", $"Variable assignments are not allowed at top level", lineNr) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()
