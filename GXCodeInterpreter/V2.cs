@@ -37,7 +37,7 @@ namespace GXCodeInterpreter
                     switch (type)
                     {
                         case LineType.UNKNOWN:
-                            throw new GXCIndeterminableLineError(line, ri);
+                            throw new GXCIndeterminableLineError(line, ri, null);
                         case LineType.COMMENT:
                             continue;
                         case LineType.MULTILINE_COMMENT_INDICATOR:
@@ -51,13 +51,13 @@ namespace GXCodeInterpreter
                         case LineType.ENTRYPOINT_DEFINITION_START:
                             if (last is not null)
                             {
-                                throw new GXCNestedEntrypointError(ri, last.GetType().Name);
+                                throw new GXCNestedEntrypointError(ri, last.GetType().Name, null);
                             }
 
                             bool hasEntrypoint = env.blocks.Values.Any(val => val is GXC_CS_ENTRYPOINT);
                             if (hasEntrypoint)
                             {
-                                throw new GXCMultipleEntrypointError(ri);
+                                throw new GXCMultipleEntrypointError(ri, null);
                             }
 
                             GXC_CS_ENTRYPOINT n_entrypoint = new(lastCSID + 1);
@@ -70,11 +70,11 @@ namespace GXCodeInterpreter
                         case LineType.IF_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_IF).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_IF).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_IF).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_IF).Name, true, null);
                             }
 
                             string IfCondition = GXCodeInterpreter.GetIfCondition(line);
@@ -90,15 +90,15 @@ namespace GXCodeInterpreter
                         case LineType.ELSE_IF_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE_IF).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE_IF).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE_IF).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE_IF).Name, true, null);
                             }
                             if (inMem is not GXC_CS_IF && inMem is not GXC_CS_ELSE_IF)
                             {
-                                throw new GXCStrayElseIfError(ri);
+                                throw new GXCStrayElseIfError(ri, null);
                             }
 
                             string ElseIfCondition = GXCodeInterpreter.GetElseIfCondition(line);
@@ -114,15 +114,15 @@ namespace GXCodeInterpreter
                         case LineType.ELSE_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ELSE).Name, true, null);
                             }
                             if (inMem is not GXC_CS_IF && inMem is not GXC_CS_ELSE_IF)
                             {
-                                throw new GXCStrayElseError(ri);
+                                throw new GXCStrayElseError(ri, null);
                             }
 
                             GXC_CS_ELSE n_else = new(lastCSID + 1);
@@ -137,11 +137,11 @@ namespace GXCodeInterpreter
                         case LineType.SWITCH_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_SWITCH).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_SWITCH).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_SWITCH).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_SWITCH).Name, true, null);
                             }
 
                             string switchVar = GXCodeInterpreter.GetSwitchVariable(line);
@@ -157,15 +157,15 @@ namespace GXCodeInterpreter
                         case LineType.CASE_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_CASE).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_CASE).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_CASE).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_CASE).Name, true, null);
                             }
                             if (last is not GXC_CS_SWITCH)
                             {
-                                throw new GXCStrayCaseError(ri);
+                                throw new GXCStrayCaseError(ri, null);
                             }
 
                             string caseValue = GXCodeInterpreter.GetCaseValue(line);
@@ -181,11 +181,11 @@ namespace GXCodeInterpreter
                         case LineType.REPEAT_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_REPEAT).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_REPEAT).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_REPEAT).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_REPEAT).Name, true, null);
                             }
 
                             string repeatVar = GXCodeInterpreter.GetRepeatVariable(line);
@@ -201,11 +201,11 @@ namespace GXCodeInterpreter
                         case LineType.ITERATE_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ITERATE).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ITERATE).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ITERATE).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_ITERATE).Name, true, null);
                             }
 
                             string iterateVar = GXCodeInterpreter.GetIterateVariable(line);
@@ -221,11 +221,11 @@ namespace GXCodeInterpreter
                         case LineType.WHILE_START:
                             if (last is null)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_WHILE).Name, false);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_WHILE).Name, false, null);
                             }
                             else if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_WHILE).Name, true);
+                                throw new GXCStrayBlockError(ri, typeof(GXC_CS_WHILE).Name, true, null);
                             }
 
                             string whileCondition = GXCodeInterpreter.GetWhileCondition(line);
@@ -241,7 +241,7 @@ namespace GXCodeInterpreter
                         case LineType.CLOSING:
                             if (last is null)
                             {
-                                throw new GXCNothingToCloseError(ri);
+                                throw new GXCNothingToCloseError(ri, null);
                             }
 
                             inMem = last;
@@ -251,11 +251,11 @@ namespace GXCodeInterpreter
                         case LineType.BUILTIN_OPERATION:
                             if (last is null)
                             {
-                                throw new GXCStrayBuiltinOperationError(ri, false);
+                                throw new GXCStrayBuiltinOperationError(ri, false, null);
                             }
                             if (last is GXC_CS_CLASS)
                             {
-                                throw new GXCStrayBuiltinOperationError(ri, true);
+                                throw new GXCStrayBuiltinOperationError(ri, true, null);
                             }
 
                             env.blocks[last.ID].Lines.Add(line);
@@ -263,7 +263,7 @@ namespace GXCodeInterpreter
                         case LineType.VARIABLE_DECLARATION:
                             if (last is null)
                             {
-                                throw new GXCStrayVariableDeclarationError(ri);
+                                throw new GXCStrayVariableDeclarationError(ri, null);
                             }
 
                             env.blocks[last.ID].Lines.Add(line);
@@ -271,10 +271,29 @@ namespace GXCodeInterpreter
                         case LineType.VARIABLE_ASSIGNMENT:
                             if (last is null)
                             {
-                                throw new GXCStrayVariableAssignmentError(ri);
+                                throw new GXCStrayVariableAssignmentError(ri, null);
                             }
 
                             env.blocks[last.ID].Lines.Add(line);
+                            break;
+                    }
+                }
+
+                // start with the entrypoint block
+                GXC_CS_ENTRYPOINT? entrypoint = env.blocks.Values.FirstOrDefault(val => val is GXC_CS_ENTRYPOINT) as GXC_CS_ENTRYPOINT ?? throw new GXCMissingEntrypointError(null);
+
+                for (int i = 0; i < entrypoint.Lines.Count; i++)
+                {
+                    string line = entrypoint.Lines[i];
+                    ShortLineType type = GXCodeInterpreter.GetShortLineType(line);
+                    Console.WriteLine($"Line {i + 1} of entrypoint: {line} (type: {type})");
+
+                    switch (type)
+                    {
+                        case ShortLineType.UNKNOWN:
+                            throw new GXCodeInterpreterError($"Undetected indeterminable line structure of {line}");
+                        case ShortLineType.BUILTIN_OPERATION:
+                            GXCodeInterpreter.ExecuteBuiltinOperation(line);
                             break;
                     }
                 }
@@ -286,7 +305,7 @@ namespace GXCodeInterpreter
             catch (GXCodeError e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error {e.Id}: {e.Message} at line {e.LineNr}");
+                Console.WriteLine($"Error {e.Id}: {e.Message} {(e.LineNr == 0 ? "" : $"at line {e.LineNr}")} {(e.Block == null ? "" : $"of block {e.Block}")}");
                 Console.ResetColor();
             }
             catch (GXCodeInterpreterError e)
@@ -339,6 +358,15 @@ namespace GXCodeInterpreter
         VARIABLE_ASSIGNMENT,
         UNKNOWN,
         NEGLIGIBLE
+    }
+
+    public enum ShortLineType
+    {
+        BUILTIN_OPERATION,
+        VARIABLE_DECLARATION,
+        VARIABLE_ASSIGNMENT,
+        BLOCK_INDICATOR,
+        UNKNOWN
     }
 
     class GXCodeInterpreter
@@ -414,6 +442,27 @@ namespace GXCodeInterpreter
 
             // unknown
             return LineType.UNKNOWN;
+        }
+
+        public static ShortLineType GetShortLineType(string line)
+        {
+            // BUILT-IN OPERATION
+            string builtinPattern = @"^\s*out\s+.*;$";
+            if (Regex.IsMatch(line, builtinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+            // VARIABLE DECLARATION
+            string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
+            if (Regex.IsMatch(line, declarationPattern)) return ShortLineType.VARIABLE_DECLARATION;
+
+            // VARIABLE ASSIGNMENT
+            string assignmentPattern = @"^\s*[a-zA-Z0-9]+\s*=\s*.*;$";
+            if (Regex.IsMatch(line, assignmentPattern)) return ShortLineType.VARIABLE_ASSIGNMENT;
+
+            // BLOCK INDICATOR
+            string blockIndicatorPattern = @"^\s*\[BLOCK\s+[0-99999999999]+\]\s*$";
+            if (Regex.IsMatch(line, blockIndicatorPattern)) return ShortLineType.BLOCK_INDICATOR;
+
+            return ShortLineType.UNKNOWN;
         }
 
         public static string GetNS(string line)
@@ -542,6 +591,22 @@ namespace GXCodeInterpreter
             {
                 throw new GXCodeInterpreterError("Could not detect while condition");
             }
+        }
+
+        public static void ExecuteBuiltinOperation(string line)
+        {
+            // out
+            string outPattern = @"^\s*out\s+(.*);$";
+            Match outMatch = Regex.Match(line, outPattern);
+
+            if (outMatch.Success)
+            {
+                string output = outMatch.Groups[1].Value;
+                Console.WriteLine(output);
+                return;
+            }
+
+            throw new GXCodeInterpreterError("Could not detect built-in operation");
         }
     }
 
