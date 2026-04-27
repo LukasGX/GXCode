@@ -3,14 +3,14 @@ entrypoint() {
     str abc = "def";
     int number = 0;
     dec commanumber = 0.5;
-    bool boolean = false;
+    bool bolean = false;
     str[] abcArray = ["a,c", "b", "c"];
     int[] numbers = [1, 2, 3];
     dec[] cnumbers = [1.4, 2.5, 3.8];
     bool[] booleans = [true, false, true, true];
     out "abc";
 
-    if (boolean) {
+    if (bolean) {
         out "abc is def";
     }
     else {

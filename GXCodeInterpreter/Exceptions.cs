@@ -48,6 +48,15 @@ namespace GXCodeInterpreter
     public class GXCMissingEntrypointError(string? block) : GXCodeError("GX0012", $"Missing entry point", block, 0) {}
 
     [Serializable]
+    public class GXCWrongTypeError(int lineNr, string tried, string should, string? block) : GXCodeError("GX0013", $"{tried} cannot be used as {should}", block, lineNr) {}
+
+    [Serializable]
+    public class GXCUnsupportedTypeError(int lineNr, string tried, string? block) : GXCodeError("GX0014", $"{tried} is not a valid variable type", block, lineNr) {}
+
+    [Serializable]
+    public class GXCUndeclaredVariableError(int lineNr, string tried, string? block) : GXCodeError("GX0015", $"Unknown variable: {tried}", block, lineNr) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()
