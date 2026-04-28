@@ -10,10 +10,35 @@ namespace GXCodeInterpreter
     {
         public static Stack<Scope> scopeStack = new();
 
-        public static void Start()
+        public static void Start(string[] args)
         {
-            try {
-                string content = File.ReadAllText("/home/lukas/Documents/Coding/C#/GXCode/GXCodeInterpreter/program.gxc");
+            try
+            {
+                string? filePath = null;
+                GXCodeHelper.DebuggingEnabled = false;
+
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "--debug")
+                    {
+                        GXCodeHelper.DebuggingEnabled = true;
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        Console.WriteLine("DEBUG MODE ENABLED");
+                        Console.ResetColor();
+                    }
+                    else if (args[i] == "--gxc" && i + 1 < args.Length)
+                    {
+                        filePath = args[i + 1];
+                        i++;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    throw new GXCodeInterpreterError("No file specified. Use --gxc <path> to specify the GXCode file to run.");
+                }
+
+                string content = File.ReadAllText(filePath);
                 List<string> lines = GXCodeHelper.SplitCode(content);
                 GXCodeEnvironment env = new(content, lines);
 
@@ -34,7 +59,7 @@ namespace GXCodeInterpreter
                     int ri = i + 1;
                     LineType type = GXCodeInterpreter.GetLineType(line, inMultiLineComment);
 
-                    // Console.WriteLine($"Line {ri}: {line} (type: {type})");
+                    GXCodeHelper.Debug($"Line {ri}: {line} (type: {type})");
 
                     GXC_CS_ELEMENT? last = cs.CS.LastOrDefault();
 
@@ -233,7 +258,7 @@ namespace GXCodeInterpreter
                             }
 
                             string whileCondition = GXCodeInterpreter.GetWhileCondition(line);
-                            GXC_CS_ITERATE n_while = new(lastCSID + 1, whileCondition);
+                            GXC_CS_WHILE n_while = new(lastCSID + 1, whileCondition);
                             env.blocks.Add(lastCSID + 1, n_while);
                             lastCSID += 1;
                             
@@ -280,6 +305,14 @@ namespace GXCodeInterpreter
 
                             env.blocks[last.ID].Lines.Add(line);
                             break;
+                        case LineType.VARIABLE_ARITHMETIC:
+                            if (last is null)
+                            {
+                                throw new GXCStrayVariableArithmeticError(ri, null);
+                            }
+
+                            env.blocks[last.ID].Lines.Add(line);
+                            break;
                     }
                 }
 
@@ -300,7 +333,7 @@ namespace GXCodeInterpreter
             catch (GXCodeInterpreterError e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Interpreter Error: ${e.Message}");
+                Console.WriteLine($"Interpreter Error: {e.Message}");
                 Console.ResetColor();
             }
         }
@@ -332,14 +365,17 @@ namespace GXCodeInterpreter
         
         public void Set(string name, object value, string type)
         {
-            if (Variables.TryGetValue(name, out var existing))
+            for (var scope = this; scope != null; scope = scope.Parent)
             {
-                existing.Value = value;  // Update bestehende Variable
+                if (scope.Variables.TryGetValue(name, out var existing))
+                {
+                    existing.Value = value;
+                    return;
+                }
             }
-            else
-            {
-                Variables[name] = new Variable(name, value, type);
-            }
+
+            // not found in any parent: create in current scope
+            Variables[name] = new Variable(name, value, type);
         }
         
         public bool TryGet(string name, out object? value, out string? type)
@@ -375,11 +411,19 @@ namespace GXCodeInterpreter
 
     class GXCodeHelper
     {
+        public static bool DebuggingEnabled = true;
+
         public static List<string> SplitCode(string code)
         {
             string[] ll = code.Split("\n");
             List<string> lines = [.. ll];
             return lines;
+        }
+        public static void Debug(string message) {
+            if (!GXCodeHelper.DebuggingEnabled) return;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"[DEBUG] {message}");
+            Console.ResetColor();
         }
     }
 
@@ -404,6 +448,7 @@ namespace GXCodeInterpreter
         BUILTIN_OPERATION,
         VARIABLE_DECLARATION,
         VARIABLE_ASSIGNMENT,
+        VARIABLE_ARITHMETIC,
         UNKNOWN,
         NEGLIGIBLE
     }
@@ -413,6 +458,7 @@ namespace GXCodeInterpreter
         BUILTIN_OPERATION,
         VARIABLE_DECLARATION,
         VARIABLE_ASSIGNMENT,
+        VARIABLE_ARITHMETIC,
         BLOCK_INDICATOR,
         UNKNOWN
     }
@@ -488,6 +534,10 @@ namespace GXCodeInterpreter
             string assignmentPattern = @"^\s*[a-zA-Z0-9]+\s*=\s*.*;$";
             if (Regex.IsMatch(line, assignmentPattern)) return LineType.VARIABLE_ASSIGNMENT;
 
+            // variable arithmetic
+            string arithmeticPattern = @"^\s*[a-zA-Z0-9]+\s*(?:[*+]-=|\*=|\+=|-=|\*=)\s*.*;$";
+            if (Regex.IsMatch(line, arithmeticPattern)) return LineType.VARIABLE_ARITHMETIC;
+
             // unknown
             return LineType.UNKNOWN;
         }
@@ -505,6 +555,10 @@ namespace GXCodeInterpreter
             // VARIABLE ASSIGNMENT
             string assignmentPattern = @"^\s*[a-zA-Z0-9]+\s*=\s*.*;$";
             if (Regex.IsMatch(line, assignmentPattern)) return ShortLineType.VARIABLE_ASSIGNMENT;
+
+            // VARIABLE ARITHMETIC
+            string arithmeticPattern = @"^\s*[a-zA-Z0-9]+\s*(?:[*+]-=|\*=|\+=|-=|\*=)\s*.*;$";
+            if (Regex.IsMatch(line, arithmeticPattern)) return ShortLineType.VARIABLE_ARITHMETIC;
 
             // BLOCK INDICATOR
             string blockIndicatorPattern = @"^\s*\[BLOCK\s+[0-99999999999]+\]\s*$";
@@ -670,7 +724,14 @@ namespace GXCodeInterpreter
                 if (int.TryParse(token, out var i)) return i;
                 if (decimal.TryParse(token, out var d)) return d;
                 // variable lookup
-                if (GXCodeProgram.scopeStack.Peek().TryGet(token, out var v, out var t)) return v;
+                if (GXCodeProgram.scopeStack.Peek().TryGet(token, out var v, out var t))
+                {
+                    if (v is null)
+                    {
+                        throw new GXCodeInterpreterError($"Variable {token} is null");
+                    }
+                    return v;
+                };
                 throw new GXCodeInterpreterError($"Unknown identifier in condition: {token}");
             }
 
@@ -723,22 +784,22 @@ namespace GXCodeInterpreter
 
             if (block is GXC_CS_IF ifBlock)
             {
-                Console.WriteLine($"Evaluating IF condition: {ifBlock.Condition}");
+                GXCodeHelper.Debug($"Evaluating IF condition: {ifBlock.Condition}");
                 bool isTrue = EvaluateCondition(env, ifBlock.Condition);
                 if (!isTrue)
                 {
-                    Console.WriteLine("Condition is false, skipping IF block");
+                    GXCodeHelper.Debug("Condition is false, skipping IF block");
                     GXCodeProgram.scopeStack.Pop();
                     return;
                 }
             }
             else if (block is GXC_CS_ELSE_IF elseIfBlock)
             {
-                Console.WriteLine($"Evaluating ELSE IF condition: {elseIfBlock.Condition}");
+                GXCodeHelper.Debug($"Evaluating ELSE IF condition: {elseIfBlock.Condition}");
                 bool isTrue = EvaluateCondition(env, elseIfBlock.Condition);
                 if (!isTrue)
                 {
-                    Console.WriteLine("Condition is false, skipping ELSE IF block");
+                    GXCodeHelper.Debug("Condition is false, skipping ELSE IF block");
                     GXCodeProgram.scopeStack.Pop();
                     return;
                 }
@@ -762,7 +823,7 @@ namespace GXCodeInterpreter
                             if ((caseValue.StartsWith("\"") && caseValue.EndsWith("\"") && caseValue.Substring(1, caseValue.Length - 2) == switchVal?.ToString()) ||
                                 caseValue == switchVal?.ToString())
                             {
-                                Console.WriteLine($"Switch case matched: {caseValue}");
+                                GXCodeHelper.Debug($"Switch case matched: {caseValue}");
                                 ExecuteBlock(env, caseBlock);
                                 caseMatched = true;
                                 return;
@@ -773,7 +834,7 @@ namespace GXCodeInterpreter
 
                 if (!caseMatched)
                 {
-                    Console.WriteLine("No matching switch case found, skipping switch block");
+                    GXCodeHelper.Debug("No matching switch case found, skipping switch block");
                     GXCodeProgram.scopeStack.Pop();
                     return;
                 }
@@ -793,12 +854,16 @@ namespace GXCodeInterpreter
                     {
                         throw new GXCodeInterpreterError($"Repeat variable {token} must be of type int");
                     }
+                    if (repeatVal is null)
+                    {
+                        throw new GXCodeInterpreterError($"Variable {token} is null");
+                    }
                     iterations = (int)repeatVal;
                 }
 
                 for (int i = 0; i < iterations; i++)
                 {
-                    Console.WriteLine($"Repeat iteration {i + 1} of {iterations}");
+                    GXCodeHelper.Debug($"Repeat iteration {i + 1} of {iterations}");
                     // create an iteration-local scope
                     GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
                     ExecuteBlockBody(env, repeatBlock);
@@ -829,12 +894,25 @@ namespace GXCodeInterpreter
 
                 foreach (var item in collection)
                 {
-                    Console.WriteLine($"Iterating item: {item}");
+                    GXCodeHelper.Debug($"Iterating item: {item}");
                     GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
                     GXCodeProgram.scopeStack.Peek().Set("element", item, iterateType.Substring(0, iterateType.Length - 2));
                     ExecuteBlockBody(env, iterateBlock);
                     GXCodeProgram.scopeStack.Pop();
                 }
+                return;
+            }
+            else if (block is GXC_CS_WHILE whileBlock)
+            {
+                while (EvaluateCondition(env, whileBlock.Condition))
+                {
+                    GXCodeHelper.Debug("While condition is true, executing block");
+                    GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+                    ExecuteBlockBody(env, whileBlock);
+                    GXCodeProgram.scopeStack.Pop();
+                }
+                GXCodeHelper.Debug("While condition is false, exiting block");
+                GXCodeProgram.scopeStack.Pop();
                 return;
             }
 
@@ -849,7 +927,7 @@ namespace GXCodeInterpreter
             {
                 string line = block.Lines[i];
                 ShortLineType type = GetShortLineType(line);
-                Console.WriteLine($"Line {i + 1} of {block.GetType().Name}#{block.ID}: {line} (type: {type})");
+                GXCodeHelper.Debug($"Line {i + 1} of {block.GetType().Name}#{block.ID}: {line} (type: {type})");
 
                 switch (type)
                 {
@@ -863,6 +941,9 @@ namespace GXCodeInterpreter
                         break;
                     case ShortLineType.VARIABLE_ASSIGNMENT:
                         AssignVariable(line, i+1, $"{block.GetType().Name}#{block.ID}");
+                        break;
+                    case ShortLineType.VARIABLE_ARITHMETIC:
+                        PerformVariableArithmetic(line, i+1, $"{block.GetType().Name}#{block.ID}");
                         break;
                     case ShortLineType.BLOCK_INDICATOR:
                         int nestedId = int.Parse(Regex.Match(line, @"^\s*\[BLOCK\s+([0-99999999999]+)\]\s*$").Groups[1].Value);
@@ -1367,6 +1448,112 @@ namespace GXCodeInterpreter
 
             // set the variable (preserve the declared type)
             GXCodeProgram.scopeStack.Peek().Set(name, typedValue, type);
+        }
+
+        public static void PerformVariableArithmetic(string line, int lineNr, string block)
+        {
+            string pattern = @"^\s*([a-zA-Z0-9]+)\s*([*+\-]=|-=|\*=)\s*(.*);$";
+            Match match = Regex.Match(line, pattern);
+
+            if (!match.Success)
+            {
+                throw new GXCodeInterpreterError("Could not detect variable arithmetic operation");
+            }
+
+            string name = match.Groups[1].Value;
+            string op = match.Groups[2].Value;
+            string value = match.Groups[3].Value.Trim();
+
+            if (!GXCodeProgram.scopeStack.Peek().TryGet(name, out var currentVal, out var type))
+            {
+                throw new GXCUndeclaredVariableError(lineNr, name, block);
+            }
+
+            if (type is null)
+            {
+                throw new GXCUndeclaredVariableError(lineNr, name, block);
+            }
+            // Only int and dec supported
+            if (type == "int")
+            {
+                if (currentVal is not int currInt)
+                    throw new GXCWrongTypeError(lineNr, name, "int", block);
+
+                int operand;
+                if (int.TryParse(value, out var litInt))
+                {
+                    operand = litInt;
+                }
+                else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out var varVal, out var varType) && varType == "int")
+                {
+                    if (varVal is not int) throw new GXCWrongTypeError(lineNr, value, "int", block);
+                    operand = (int)varVal;
+                }
+                else
+                {
+                    throw new GXCWrongTypeError(lineNr, value, "int", block);
+                }
+
+                int result = op switch
+                {
+                    "+=" => currInt + operand,
+                    "-=" => currInt - operand,
+                    "*=" => currInt * operand,
+                    _ => throw new GXCodeInterpreterError("Unknown arithmetic operator")
+                };
+
+                GXCodeProgram.scopeStack.Peek().Set(name, result, "int");
+                return;
+            }
+
+            if (type == "dec")
+            {
+                decimal currDec;
+                if (currentVal is decimal d) currDec = d;
+                else if (currentVal is int i) currDec = Convert.ToDecimal(i);
+                else throw new GXCWrongTypeError(lineNr, name, "dec", block);
+
+                decimal operand;
+                if (decimal.TryParse(value, out var litDec))
+                {
+                    operand = litDec;
+                }
+                else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out var varVal, out var varType))
+                {
+                    if (varType == "dec")
+                    {
+                        if (varVal is not decimal) throw new GXCWrongTypeError(lineNr, value, "dec", block);
+                        operand = (decimal)varVal;
+                    }
+                    else if (varType == "int")
+                    {
+                        if (varVal is not int) throw new GXCWrongTypeError(lineNr, value, "int", block);
+                        operand = Convert.ToDecimal((int)varVal);
+                    }
+                    else
+                    {
+                        throw new GXCWrongTypeError(lineNr, value, "dec", block);
+                    }
+                }
+                else
+                {
+                    throw new GXCWrongTypeError(lineNr, value, "dec", block);
+                }
+
+                decimal result = op switch
+                {
+                    "+=" => currDec + operand,
+                    "-=" => currDec - operand,
+                    "*=" => currDec * operand,
+                    _ => throw new GXCodeInterpreterError("Unknown arithmetic operator")
+                };
+
+                GXCodeProgram.scopeStack.Peek().Set(name, result, "dec");
+                return;
+            }
+
+            // unsupported type for arithmetic
+            throw new GXCWrongArithmeticError(lineNr, block);
         }
     }
 

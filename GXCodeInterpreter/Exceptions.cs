@@ -57,6 +57,12 @@ namespace GXCodeInterpreter
     public class GXCUndeclaredVariableError(int lineNr, string tried, string? block) : GXCodeError("GX0015", $"Unknown variable: {tried}", block, lineNr) {}
 
     [Serializable]
+    public class GXCStrayVariableArithmeticError(int lineNr, string? block) : GXCodeError("GX0016", $"Variable arithmetic operations are not allowed at top level", block, lineNr) {}
+
+    [Serializable]
+    public class GXCWrongArithmeticError(int lineNr, string? block) : GXCodeError("GX0016", $"Variable arithmetic operations are only allowed with int or dec variables", block, lineNr) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()

@@ -10,7 +10,7 @@ namespace GXCodeInterpreter
     {
         public static void Main(string[] args)
         {
-            GXCodeProgram.Start();
+            GXCodeProgram.Start(args);
         }
     }
 }

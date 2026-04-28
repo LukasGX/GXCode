@@ -36,4 +36,10 @@ entrypoint() {
     iterate (numbers) {
         out element;
     }
+
+    int i = 0;
+    while (i <= 5) {
+        out i;
+        i += 1;
+    }
 }
