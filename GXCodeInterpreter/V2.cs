@@ -336,6 +336,12 @@ namespace GXCodeInterpreter
                 Console.WriteLine($"Interpreter Error: {e.Message}");
                 Console.ResetColor();
             }
+            catch (GXCodeBreak)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Program was ended intentionally");
+                Console.ResetColor();
+            }
         }
     }
 
@@ -523,8 +529,11 @@ namespace GXCodeInterpreter
             if (Regex.IsMatch(line, closingPattern)) return LineType.CLOSING;
 
             // built-in operation
-            string builtinPattern = @"^\s*out\s+.*;$";
-            if (Regex.IsMatch(line, builtinPattern)) return LineType.BUILTIN_OPERATION;
+            string outBuiltinPattern = @"^\s*out\s+.*;$";
+            if (Regex.IsMatch(line, outBuiltinPattern)) return LineType.BUILTIN_OPERATION;
+
+            string exitBuiltinPattern = @"^\s*exit;\s*$";
+            if (Regex.IsMatch(line, exitBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
             // variable declaration
             string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
@@ -545,8 +554,11 @@ namespace GXCodeInterpreter
         public static ShortLineType GetShortLineType(string line)
         {
             // BUILT-IN OPERATION
-            string builtinPattern = @"^\s*out\s+.*;$";
-            if (Regex.IsMatch(line, builtinPattern)) return ShortLineType.BUILTIN_OPERATION;
+            string outBuiltinPattern = @"^\s*out\s+.*;$";
+            if (Regex.IsMatch(line, outBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+            string exitBuiltinPattern = @"^\s*exit;\s*$";
+            if (Regex.IsMatch(line, exitBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
 
             // VARIABLE DECLARATION
             string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
@@ -973,6 +985,10 @@ namespace GXCodeInterpreter
                 }
                 return;
             }
+
+            // exit
+            string exitPattern = @"^\s*exit;\s*$";
+            if (Regex.IsMatch(line, exitPattern)) throw new GXCodeBreak();
 
             throw new GXCodeInterpreterError("Could not detect built-in operation");
         }
