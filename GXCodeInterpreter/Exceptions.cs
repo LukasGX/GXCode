@@ -1,6 +1,3 @@
-using System;
-using System.Runtime.Serialization;
-
 namespace GXCodeInterpreter
 {
     [Serializable]
@@ -61,6 +58,12 @@ namespace GXCodeInterpreter
 
     [Serializable]
     public class GXCWrongArithmeticError(int lineNr, string? block) : GXCodeError("GX0016", $"Variable arithmetic operations are only allowed with int or dec variables", block, lineNr) {}
+
+    [Serializable]
+    public class GXCMultipleNamespaceError(int lineNr, string? block) : GXCodeError("GX0017", $"Multiple namespace definitions", block, lineNr) {}
+
+    [Serializable]
+    public class GXCWrongNamespaceDefinitionError(int lineNr, string? block) : GXCodeError("GX0018", $"Namespace definition is only allowed at first line", block, lineNr) {}
 
     [Serializable]
     public class GXCodeBreak : Exception

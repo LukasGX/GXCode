@@ -1,9 +1,3 @@
-using System;
-using System.Numerics;
-using System.Reflection.Metadata;
-using System.Text.RegularExpressions;
-using System.Linq;
-
 namespace GXCodeInterpreter
 {
     class MainClass

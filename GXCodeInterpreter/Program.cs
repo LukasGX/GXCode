@@ -1,8 +1,4 @@
-﻿using System;
-using System.Numerics;
-using System.Reflection.Metadata;
-using System.Text.RegularExpressions;
-using System.Linq;
+﻿using System.Text.RegularExpressions;
 
 namespace GXCodeInterpreter
 {
