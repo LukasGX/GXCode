@@ -106,6 +106,9 @@ partial class GXCodeInterpreter
         if (Regex.IsMatch(line, exitBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
         // variable declaration
+        string constantDeclarationPattern = @"^\s*const\s\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constantDeclarationPattern)) return LineType.VARIABLE_DECLARATION;
+
         string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
         if (Regex.IsMatch(line, declarationPattern)) return LineType.VARIABLE_DECLARATION;
 
@@ -134,6 +137,9 @@ partial class GXCodeInterpreter
         if (Regex.IsMatch(line, exitBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
 
         // VARIABLE DECLARATION
+        string constantDeclarationPattern = @"^\s*const\s\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constantDeclarationPattern)) return ShortLineType.VARIABLE_DECLARATION;
+
         string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
         if (Regex.IsMatch(line, declarationPattern)) return ShortLineType.VARIABLE_DECLARATION;
 

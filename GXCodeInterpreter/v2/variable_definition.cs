@@ -6,7 +6,7 @@ partial class GXCodeInterpreter
 {
     public static void DeclareVariable(string line, int lineNr, string block)
     {
-        string pattern = @"^\s*(str|int|dec|bool|rex)(\[\]|\{(str|int|dec|bool|rex)\})?\s*([a-zA-Z0-9]+)\s*=\s*(.*);$";
+        string pattern = @"^\s*(?:const\s+)?(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*([a-zA-Z0-9]+)\s*=\s*(.*);$";
         Match match = Regex.Match(line, pattern);
 
         if (!match.Success)
@@ -14,11 +14,12 @@ partial class GXCodeInterpreter
             throw new GXCodeInterpreterError("Could not detect variable declaration");
         }
 
-        string baseType = match.Groups[1].Value;
-        string arrayOrDictToken = match.Groups[2].Value;
-        string dictValueType = match.Groups[3].Value;
-        string name = match.Groups[4].Value;
-        string value = match.Groups[5].Value.Trim();
+        string isConst = match.Groups[1].Value;
+        string baseType = match.Groups[2].Value;
+        string arrayOrDictToken = match.Groups[3].Value;
+        string dictValueType = match.Groups[4].Value;
+        string name = match.Groups[5].Value;
+        string value = match.Groups[6].Value.Trim();
 
         object typedValue;
         string storedType;
@@ -199,6 +200,6 @@ partial class GXCodeInterpreter
             }
         }
 
-        GXCodeProgram.scopeStack.Peek().Set(name, typedValue, storedType);
+        GXCodeProgram.scopeStack.Peek().Set(name, typedValue, storedType, isConst: true);
     }
 }

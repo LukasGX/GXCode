@@ -1,16 +1,12 @@
+using System.Runtime.CompilerServices;
+
 namespace GXCodeInterpreter;
-public class Variable
+public class Variable(string name, object value, string type, bool isConst)
 {
-    public string Name { get; init; }
-    public object Value { get; set; }
-    public string Type { get; init; }  // "str", "int", "bool", etc.
-    
-    public Variable(string name, object value, string type)
-    {
-        Name = name;
-        Value = value;
-        Type = type;
-    }
+    public string Name { get; init; } = name;
+    public object Value { get; set; } = value;
+    public string Type { get; init; } = type;
+    public bool IsConstant { get; init; } = isConst;
 }
 
 public class Scope
@@ -23,7 +19,7 @@ public class Scope
         Parent = parent;
     }
     
-    public void Set(string name, object value, string type)
+    public void Set(string name, object value, string type, bool isConst = false)
     {
         for (var scope = this; scope != null; scope = scope.Parent)
         {
@@ -34,8 +30,7 @@ public class Scope
             }
         }
 
-        // not found in any parent: create in current scope
-        Variables[name] = new Variable(name, value, type);
+        Variables[name] = new Variable(name, value, type, isConst);
     }
     
     public bool TryGet(string name, out object? value, out string? type)
