@@ -155,6 +155,9 @@ partial class GXCodeInterpreter
             ShortLineType type = GetShortLineType(line);
             GXCodeHelper.Debug($"Line {i + 1} of {block.GetType().Name}#{block.ID}: {line} (type: {type})");
 
+            string blockName = $"{block.GetType().Name}#{block.ID}";
+            int ri = i+1;
+
             switch (type)
             {
                 case ShortLineType.UNKNOWN:
@@ -162,14 +165,53 @@ partial class GXCodeInterpreter
                 case ShortLineType.BUILTIN_OPERATION:
                     ExecuteBuiltinOperation(line);
                     break;
-                case ShortLineType.VARIABLE_DECLARATION:
-                    DeclareVariable(line, i+1, $"{block.GetType().Name}#{block.ID}");
+                case ShortLineType.STR_DECLARATION:
+                    DeclareStr(line, ri, blockName);
+                    break;
+                case ShortLineType.CONST_STR_DECLARATION:
+                    DeclareConstStr(line, ri, blockName);
+                    break;
+                case ShortLineType.INT_DECLARATION:
+                    DeclareInt(line, ri, blockName);
+                    break;
+                case ShortLineType.CONST_INT_DECLARATION:
+                    DeclareConstInt(line, ri, blockName);
+                    break;
+                case ShortLineType.DEC_DECLARATION:
+                    DeclareDec(line, ri, blockName);
+                    break;
+                case ShortLineType.CONST_DEC_DECLARATION:
+                    DeclareConstDec(line, ri, blockName);
+                    break;
+                case ShortLineType.BOOL_DECLARATION:
+                    DeclareBool(line, ri, blockName);
+                    break;
+                case ShortLineType.CONST_BOOL_DECLARATION:
+                    DeclareConstBool(line, ri, blockName);
+                    break;
+                case ShortLineType.REX_DECLARATION:
+                    DeclareRex(line, ri, blockName);
+                    break;
+                case ShortLineType.CONST_REX_DECLARATION:
+                    DeclareConstRex(line, ri, blockName);
+                    break;
+                case ShortLineType.ARRAY_DECLARATION:
+                    DeclareArray(line, ri, blockName);
+                    break;
+                case ShortLineType.CONST_ARRAY_DECLARATION:
+                    DeclareConstArray(line, ri, blockName);
+                    break;
+                case ShortLineType.DICT_DECLARATION:
+                    DeclareDict(line, ri, blockName);
+                    break;
+                case ShortLineType.CONST_DICT_DECLARATION:
+                    DeclareConstDict(line, ri, blockName);
                     break;
                 case ShortLineType.VARIABLE_ASSIGNMENT:
-                    AssignVariable(line, i+1, $"{block.GetType().Name}#{block.ID}");
+                    AssignVariable(line, ri, blockName);
                     break;
                 case ShortLineType.VARIABLE_ARITHMETIC:
-                    PerformVariableArithmetic(line, i+1, $"{block.GetType().Name}#{block.ID}");
+                    PerformVariableArithmetic(line, ri, blockName);
                     break;
                 case ShortLineType.BLOCK_INDICATOR:
                     int nestedId = int.Parse(Regex.Match(line, @"^\s*\[BLOCK\s+([0-99999999999]+)\]\s*$").Groups[1].Value);

@@ -20,6 +20,20 @@ public enum LineType
     CLOSING,
     BUILTIN_OPERATION,
     VARIABLE_DECLARATION,
+    STR_DECLARATION,
+    CONST_STR_DECLARATION,
+    INT_DECLARATION,
+    CONST_INT_DECLARATION,
+    DEC_DECLARATION,
+    CONST_DEC_DECLARATION,
+    BOOL_DECLARATION,
+    CONST_BOOL_DECLARATION,
+    REX_DECLARATION,
+    CONST_REX_DECLARATION,
+    ARRAY_DECLARATION,
+    CONST_ARRAY_DECLARATION,
+    DICT_DECLARATION,
+    CONST_DICT_DECLARATION,
     VARIABLE_ASSIGNMENT,
     VARIABLE_ARITHMETIC,
     UNKNOWN,
@@ -29,7 +43,20 @@ public enum LineType
 public enum ShortLineType
 {
     BUILTIN_OPERATION,
-    VARIABLE_DECLARATION,
+    STR_DECLARATION,
+    CONST_STR_DECLARATION,
+    INT_DECLARATION,
+    CONST_INT_DECLARATION,
+    DEC_DECLARATION,
+    CONST_DEC_DECLARATION,
+    BOOL_DECLARATION,
+    CONST_BOOL_DECLARATION,
+    REX_DECLARATION,
+    CONST_REX_DECLARATION,
+    ARRAY_DECLARATION,
+    CONST_ARRAY_DECLARATION,
+    DICT_DECLARATION,
+    CONST_DICT_DECLARATION,
     VARIABLE_ASSIGNMENT,
     VARIABLE_ARITHMETIC,
     BLOCK_INDICATOR,
@@ -106,11 +133,61 @@ partial class GXCodeInterpreter
         if (Regex.IsMatch(line, exitBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
         // variable declaration
-        string constantDeclarationPattern = @"^\s*const\s\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
-        if (Regex.IsMatch(line, constantDeclarationPattern)) return LineType.VARIABLE_DECLARATION;
+        // const str
+        string constStrDeclarationPattern = @"^\s*const\s+str(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constStrDeclarationPattern)) return LineType.CONST_STR_DECLARATION;
 
-        string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
-        if (Regex.IsMatch(line, declarationPattern)) return LineType.VARIABLE_DECLARATION;
+        // const int
+        string constIntDeclarationPattern = @"^\s*const\s+int(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constIntDeclarationPattern)) return LineType.CONST_INT_DECLARATION;
+
+        // const dec
+        string constDecDeclarationPattern = @"^\s*const\s+dec(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constDecDeclarationPattern)) return LineType.CONST_DEC_DECLARATION;
+
+        // const bool
+        string constBoolDeclarationPattern = @"^\s*const\s+bool(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constBoolDeclarationPattern)) return LineType.CONST_BOOL_DECLARATION;
+
+        // const rex
+        string constRexDeclarationPattern = @"^\s*const\s+rex(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constRexDeclarationPattern)) return LineType.CONST_REX_DECLARATION;
+
+        // str
+        string strDeclarationPattern = @"^\s*str(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, strDeclarationPattern)) return LineType.STR_DECLARATION;
+
+        // int
+        string intDeclarationPattern = @"^\s*int(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, intDeclarationPattern)) return LineType.INT_DECLARATION;
+
+        // dec
+        string decDeclarationPattern = @"^\s*dec(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, decDeclarationPattern)) return LineType.DEC_DECLARATION;
+
+        // bool
+        string boolDeclarationPattern = @"^\s*bool(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, boolDeclarationPattern)) return LineType.BOOL_DECLARATION;
+
+        // rex
+        string rexDeclarationPattern = @"^\s*rex(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, rexDeclarationPattern)) return LineType.REX_DECLARATION;
+
+        // array
+        string arrayDeclarationPattern = @"^\s*(str|int|dec|bool|rex)\s*\[\]\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, arrayDeclarationPattern)) return LineType.ARRAY_DECLARATION;
+
+        // const array
+        string constArrayDeclarationPattern = @"^\s*const\s+(str|int|dec|bool|rex)\s*\[\]\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constArrayDeclarationPattern)) return LineType.CONST_ARRAY_DECLARATION;
+
+        // dict
+        string dictDeclarationPattern = @"^\s*(str|int|dec|bool|rex)\s*\{[a-z;]+\}\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, dictDeclarationPattern)) return LineType.DICT_DECLARATION;
+
+        // const dict
+        string constDictDeclarationPattern = @"^\s*const\s+(str|int|dec|bool|rex)\s*\{[a-z;]+\}\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constDictDeclarationPattern)) return LineType.CONST_DICT_DECLARATION;
 
         // variable assignment
         string assignmentPattern = @"^\s*[a-zA-Z0-9]+\s*=\s*.*;$";
@@ -137,11 +214,61 @@ partial class GXCodeInterpreter
         if (Regex.IsMatch(line, exitBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
 
         // VARIABLE DECLARATION
-        string constantDeclarationPattern = @"^\s*const\s\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
-        if (Regex.IsMatch(line, constantDeclarationPattern)) return ShortLineType.VARIABLE_DECLARATION;
+        // const str
+        string constStrDeclarationPattern = @"^\s*const\s+str(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constStrDeclarationPattern)) return ShortLineType.CONST_STR_DECLARATION;
 
-        string declarationPattern = @"^\s*(str|int|dec|bool|rex)(?!\s*\(\))(?:\[\]|\{[a-z;]+\})?\s*[a-zA-Z0-9]+\s*=\s*.*;$";
-        if (Regex.IsMatch(line, declarationPattern)) return ShortLineType.VARIABLE_DECLARATION;
+        // const int
+        string constIntDeclarationPattern = @"^\s*const\s+int(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constIntDeclarationPattern)) return ShortLineType.CONST_INT_DECLARATION;
+
+        // const dec
+        string constDecDeclarationPattern = @"^\s*const\s+dec(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constDecDeclarationPattern)) return ShortLineType.CONST_DEC_DECLARATION;
+
+        // const bool
+        string constBoolDeclarationPattern = @"^\s*const\s+bool(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constBoolDeclarationPattern)) return ShortLineType.CONST_BOOL_DECLARATION;
+
+        // const rex
+        string constRexDeclarationPattern = @"^\s*const\s+rex(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constRexDeclarationPattern)) return ShortLineType.CONST_REX_DECLARATION;
+
+        // str
+        string strDeclarationPattern = @"^\s*str(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, strDeclarationPattern)) return ShortLineType.STR_DECLARATION;
+
+        // int
+        string intDeclarationPattern = @"^\s*int(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, intDeclarationPattern)) return ShortLineType.INT_DECLARATION;
+
+        // dec
+        string decDeclarationPattern = @"^\s*dec(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, decDeclarationPattern)) return ShortLineType.DEC_DECLARATION;
+
+        // bool
+        string boolDeclarationPattern = @"^\s*bool(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, boolDeclarationPattern)) return ShortLineType.BOOL_DECLARATION;
+
+        // rex
+        string rexDeclarationPattern = @"^\s*rex(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, rexDeclarationPattern)) return ShortLineType.REX_DECLARATION;
+
+        // array
+        string arrayDeclarationPattern = @"^\s*(str|int|dec|bool|rex)\s*\[\]\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, arrayDeclarationPattern)) return ShortLineType.ARRAY_DECLARATION;
+
+        // const array
+        string constArrayDeclarationPattern = @"^\s*const\s+(str|int|dec|bool|rex)\s*\[\]\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constArrayDeclarationPattern)) return ShortLineType.CONST_ARRAY_DECLARATION;
+
+        // dict
+        string dictDeclarationPattern = @"^\s*(str|int|dec|bool|rex)\s*\{[a-z;]+\}\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, dictDeclarationPattern)) return ShortLineType.DICT_DECLARATION;
+
+        // const dict
+        string constDictDeclarationPattern = @"^\s*const\s+(str|int|dec|bool|rex)\s*\{[a-z;]+\}\s+[a-zA-Z0-9]+\s*=\s*.*;$";
+        if (Regex.IsMatch(line, constDictDeclarationPattern)) return ShortLineType.CONST_DICT_DECLARATION;
 
         // VARIABLE ASSIGNMENT
         string assignmentPattern = @"^\s*[a-zA-Z0-9]+\s*=\s*.*;$";

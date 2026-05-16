@@ -290,7 +290,7 @@ class GXCodeProgram
 
                         env.blocks[last.ID].Lines.Add(line);
                         break;
-                    case LineType.VARIABLE_DECLARATION:
+                    case LineType.VARIABLE_DECLARATION or LineType.STR_DECLARATION or LineType.INT_DECLARATION or LineType.DEC_DECLARATION or LineType.BOOL_DECLARATION or LineType.REX_DECLARATION or LineType.ARRAY_DECLARATION or LineType.DICT_DECLARATION or LineType.CONST_STR_DECLARATION or LineType.CONST_INT_DECLARATION or LineType.CONST_DEC_DECLARATION or LineType.CONST_BOOL_DECLARATION or LineType.CONST_REX_DECLARATION or LineType.CONST_ARRAY_DECLARATION or LineType.CONST_DICT_DECLARATION:
                         if (last is null)
                         {
                             throw new GXCStrayVariableDeclarationError(ri, null);
