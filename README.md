@@ -27,17 +27,35 @@ entrypoint() {
 }
 ```
 
+Strongly output string using the `shout` command:
+
+```gxc
+entrypoint() {
+    shout "Hello World!";
+}
+```
+
+## Quitting
+
+Quit the program via `exit`:
+
+```gxc
+entrypoint() {
+    exit;
+}
+```
+
 ## Comments
 
 Two types of comments are supported:
 
--   Single-line comments start with:
+- Single-line comments start with:
 
 ```gxc
 // This is a comment
 ```
 
--   Multi-line comments are enclosed by triple slashes:
+- Multi-line comments are enclosed by triple slashes:
 
 ```gxc
 ///
@@ -49,14 +67,13 @@ This is also a comment
 
 Variables can be declared with the following types:
 
--   `str` for String (text)
--   `int` for Integer (whole numbers)
--   `dec` for Decimal numbers (floating point)
--   `bool` for Boolean (true/false)
--   `rex` for regular expressions
--   Arrays of any type: `<DataType>[]`, e.g. `str[]`
--   Maps (key-value pairs) of types: `<KeyType>{<ValueType>}`, e.g. `str{int}`
--   Maps can have multiple types grouped, e.g. `str{int; bool}`
+- `str` for String (text)
+- `int` for Integer (whole numbers)
+- `dec` for Decimal numbers (floating point)
+- `bool` for Boolean (true/false)
+- `rex` for regular expressions
+- Arrays of any type: `<DataType>[]`, e.g. `str[]`
+- Maps (key-value pairs) of types: `<KeyType>{<ValueType>}`, e.g. `str{int}`
 
 Example declarations:
 
@@ -71,15 +88,11 @@ str{int} friendsWithId = {
     {"a", 0},
     {"b", 1}
 };
-str{int; bool} friendsDetailed = {
-    {"a", 0, false},
-    {"b", 1, true}
-};
 ```
 
 ## Control Structures
 
--   Conditional statements:
+- Conditional statements:
 
 ```gxc
 if (name == "abc") {
@@ -93,7 +106,7 @@ else {
 }
 ```
 
--   Switch statements:
+- Switch statements:
 
 ```gxc
 switch (name) {
@@ -108,7 +121,7 @@ switch (name) {
 
 ## Loops
 
--   Counting loop:
+- Counting loop:
 
 ```gxc
 repeat (10) {
@@ -124,7 +137,9 @@ for (int i = 0; i <= 10; i++) {
 }
 ```
 
--   Iteration over arrays:
+**Note:** There are no for loops in GXCode
+
+- Iteration over arrays:
 
 ```gxc
 str[] names = ["abc", "def"];
@@ -142,7 +157,9 @@ for (int i = 0; i < names.length; i++) {
 }
 ```
 
--   While loops are as in C++:
+**Note:** There are no for loops in GXCode
+
+- While loops are as in C++:
 
 ```gxc
 while (condition) {
@@ -181,11 +198,11 @@ str color = car.GetColor();
 
 ## Operators
 
--   Assignment: `=`
--   Comparison: `==`
--   Negative comparison: `!=`
--   Arithmetic: `+=` `-=` `*=` and `+` `-` `*` `/`
--   Root (nth root): `rt` (example: rt 2 = square root of 2; rt3 50 = cube root of 50)
+- Assignment: `=`
+- Comparison: `==`
+- Negative comparison: `!=`
+- Arithmetic: `+=` `-=` `*=` and `+` `-` `*` `/`
+- Root (nth root): `rt` (example: rt 2 = square root of 2; rt3 50 = cube root of 50)
 
 ## Package management
 
