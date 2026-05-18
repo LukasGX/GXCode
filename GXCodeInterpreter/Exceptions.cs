@@ -66,6 +66,18 @@ namespace GXCodeInterpreter
     public class GXCWrongNamespaceDefinitionError(int lineNr, string? block) : GXCodeError("GX0018", $"Namespace definition is only allowed at first line", block, lineNr) {}
 
     [Serializable]
+    public class GXCWrongClassModifierError(int lineNr, string tried, string? block) : GXCodeError("GX0019", $"Wrong class modifier: {tried}", block, lineNr) {}
+
+    [Serializable]
+    public class GXCMethodMissingClassError(int lineNr, string? block) : GXCodeError("GX0020", $"Methods are only allowed inside classes", block, lineNr) {}
+
+    [Serializable]
+    public class GXCWrongMethodModifierError(int lineNr, string tried, string? block) : GXCodeError("GX0021", $"Wrong method modifier: {tried}", block, lineNr) {}
+
+    [Serializable]
+    public class GXCNestedClassError(int lineNr, string nest, string? block) : GXCodeError("GX0022", $"Class definition must be at the top level, but is nested in {nest}", block, lineNr) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()

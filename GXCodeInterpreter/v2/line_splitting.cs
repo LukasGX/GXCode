@@ -4,130 +4,210 @@ namespace GXCodeInterpreter;
 partial class GXCodeInterpreter
 {
     public static string GetNS(string line)
+    {
+        string pattern = @"^#ns\s+([a-zA-Z0-9]+)$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
         {
-            string pattern = @"^#ns\s+([a-zA-Z0-9]+)$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string ns = match.Groups[1].Value;
-                return ns;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect ns");
-            }
+            string ns = match.Groups[1].Value;
+            return ns;
         }
-
-        public static string GetIfCondition(string line)
+        else
         {
-            string pattern = @"^\s*if\s*\(([^""']*)\)\s*\{$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string condition = match.Groups[1].Value;
-                return condition;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect if condition");
-            }
+            throw new GXCodeInterpreterError("Could not detect ns");
         }
+    }
 
-        public static string GetElseIfCondition(string line)
+    public static string GetIfCondition(string line)
+    {
+        string pattern = @"^\s*if\s*\(([^""']*)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
         {
-            string pattern = @"^\s*else\s+if\s*\(([^""']*)\)\s*\{$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string condition = match.Groups[1].Value;
-                return condition;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect else if condition");
-            }
+            string condition = match.Groups[1].Value;
+            return condition;
         }
-
-        public static string GetSwitchVariable(string line)
+        else
         {
-            string pattern = @"^\s*switch\s*\(([a-zA-Z0-9]+)\)\s*\{$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string variable = match.Groups[1].Value;
-                return variable;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect switch variable");
-            }
+            throw new GXCodeInterpreterError("Could not detect if condition");
         }
+    }
 
-        public static string GetCaseValue(string line)
+    public static string GetElseIfCondition(string line)
+    {
+        string pattern = @"^\s*else\s+if\s*\(([^""']*)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
         {
-            string pattern = @"^\s*case\s+(.*?)\s*\{$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string value = match.Groups[1].Value;
-                return value;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect case value");
-            }
+            string condition = match.Groups[1].Value;
+            return condition;
         }
-
-        public static string GetRepeatVariable(string line)
+        else
         {
-            string pattern = @"^\s*repeat\s*\(([a-zA-Z0-9]+)\)\s*\{$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string variable = match.Groups[1].Value;
-                return variable;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect repeat variable");
-            }
+            throw new GXCodeInterpreterError("Could not detect else if condition");
         }
+    }
 
-        public static string GetIterateVariable(string line)
+    public static string GetSwitchVariable(string line)
+    {
+        string pattern = @"^\s*switch\s*\(([a-zA-Z0-9]+)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
         {
-            string pattern = @"^\s*iterate\s*\(([a-zA-Z0-9]+)\)\s*\{$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string variable = match.Groups[1].Value;
-                return variable;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect iterate variable");
-            }
+            string variable = match.Groups[1].Value;
+            return variable;
         }
-
-        public static string GetWhileCondition(string line)
+        else
         {
-            string pattern = @"^\s*while\s*\(([^""']*)\)\s*\{$";
-            Match match = Regex.Match(line, pattern);
-
-            if (match.Success)
-            {
-                string condition = match.Groups[1].Value;
-                return condition;
-            }
-            else
-            {
-                throw new GXCodeInterpreterError("Could not detect while condition");
-            }
+            throw new GXCodeInterpreterError("Could not detect switch variable");
         }
+    }
+
+    public static string GetCaseValue(string line)
+    {
+        string pattern = @"^\s*case\s+(.*?)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string value = match.Groups[1].Value;
+            return value;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect case value");
+        }
+    }
+
+    public static string GetRepeatVariable(string line)
+    {
+        string pattern = @"^\s*repeat\s*\(([a-zA-Z0-9]+)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string variable = match.Groups[1].Value;
+            return variable;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect repeat variable");
+        }
+    }
+
+    public static string GetIterateVariable(string line)
+    {
+        string pattern = @"^\s*iterate\s*\(([a-zA-Z0-9]+)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string variable = match.Groups[1].Value;
+            return variable;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect iterate variable");
+        }
+    }
+
+    public static string GetWhileCondition(string line)
+    {
+        string pattern = @"^\s*while\s*\(([^""']*)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string condition = match.Groups[1].Value;
+            return condition;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect while condition");
+        }
+    }
+
+    public static string GetClassName(string line)
+    {
+        string pattern = @"^(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[2].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect class name");
+        }
+    }
+
+    public static string GetClassModifier(string line)
+    {
+        string pattern = @"^(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string modifier = match.Groups[1].Value;
+            return modifier;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect class modifier");
+        }
+    }
+
+    public static string GetMethodName(string line)
+    {
+        string pattern = @"^\s*(?:([a-z]+)\s+)?method\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[2].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect method name");
+        }
+    }
+
+    public static string GetMethodModifier(string line)
+    {
+        string pattern = @"^\s*(?:([a-z]+)\s+)?method\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[1].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect method modifier");
+        }
+    }
+
+    public static string GetMethodParameters(string line)
+    {
+        string pattern = @"^\s*(?:([a-z]+)\s+)?method\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[3].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect method parameters");
+        }
+    }
 }

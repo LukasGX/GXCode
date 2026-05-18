@@ -19,7 +19,6 @@ public enum LineType
     WHILE_START,
     CLOSING,
     BUILTIN_OPERATION,
-    VARIABLE_DECLARATION,
     STR_DECLARATION,
     CONST_STR_DECLARATION,
     INT_DECLARATION,
@@ -86,9 +85,9 @@ partial class GXCodeInterpreter
         if (Regex.IsMatch(line, nsPattern)) return LineType.NAMESPACE_DEFINITION;
 
         // definition start
-        string methodPattern = @"^(?:\w+\s+)?method(?:\[\]|\{[a-z;]+\})\s+[a-zA-Z0-9]+\s*\{$";
-        string returnPattern = @"^(?:\w+\s+)?(?:str|int|dec|bool|rex)(?:\[\]|\{[a-z;]+\})\s+[a-zA-Z0-9]+\s*\{$";
-        string classPattern = @"^(?:\w+\s+)?class(?:\[\]|\{[a-z;]+\})\s+[a-zA-Z0-9]+\s*\{$";
+        string methodPattern = @"^\s*(?:([a-z]+)\s+)?method\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        string returnPattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)(?:\[\]|\{[a-z;]+\})?\s+([a-zA-Z0-9_]+)\s*(?:\((.*?)\))?\s*\{$";
+        string classPattern = @"^(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
         if (Regex.IsMatch(line, methodPattern)) return LineType.METHOD_DEFINITION_START;
         if (Regex.IsMatch(line, returnPattern)) return LineType.RETURN_METHOD_DEFINITION_START;
         if (Regex.IsMatch(line, classPattern)) return LineType.CLASS_DEFINITION_START;
@@ -129,8 +128,11 @@ partial class GXCodeInterpreter
         string shoutBuiltinPattern = @"^\s*shout\s+.*;$";
         if (Regex.IsMatch(line, shoutBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
-        string exitBuiltinPattern = @"^\s*exit;\s*$";
+        string exitBuiltinPattern = @"^\s*exit;$";
         if (Regex.IsMatch(line, exitBuiltinPattern)) return LineType.BUILTIN_OPERATION;
+
+        string returnBuiltinPattern = @"^\s*return\s+.*;$";
+        if (Regex.IsMatch(line, returnBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
         // variable declaration
         // const str

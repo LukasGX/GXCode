@@ -78,6 +78,56 @@ class GXCodeProgram
                         }
                         env.Namespace = GXCodeInterpreter.GetNS(line);
                         break;
+                    case LineType.CLASS_DEFINITION_START:
+                        if (last is not null)
+                        {
+                            throw new GXCNestedClassError(ri, last.GetType().Name, null);
+                        }
+
+                        string className = GXCodeInterpreter.GetClassName(line);
+                        string classModifier = GXCodeInterpreter.GetClassModifier(line);
+
+                        if (classModifier != "" && classModifier != "private")
+                            throw new GXCWrongClassModifierError(ri, classModifier, null);
+
+                        bool isPrivateClass = classModifier == "private";
+
+                        GXC_CS_CLASS n_class = new(lastCSID + 1, className, isPrivateClass);
+                        env.blocks.Add(lastCSID + 1, n_class);
+                        lastCSID += 1;
+
+                        cs.CS.Add(n_class);
+                        cs_ids.Add(n_class.ID);
+                        break;
+                    case LineType.METHOD_DEFINITION_START:
+                        if (last is null)
+                        {
+                            throw new GXCStrayBlockError(ri, typeof(GXC_CS_METHOD).Name, false, null);
+                        }
+                        else if (last is not GXC_CS_CLASS)
+                        {
+                            throw new GXCStrayBlockError(ri, typeof(GXC_CS_METHOD).Name, true, null);
+                        }
+
+                        string methodName = GXCodeInterpreter.GetMethodName(line);
+                        string methodModifier = GXCodeInterpreter.GetMethodModifier(line);
+                        string methodParameters = GXCodeInterpreter.GetMethodParameters(line);
+
+                        if (methodModifier != "" && methodModifier != "private")
+                            throw new GXCWrongMethodModifierError(ri, methodModifier, null);
+
+                        bool isPrivateMethod = methodModifier == "private";
+
+                        GXC_CS_METHOD n_method = new(lastCSID + 1, methodName, isPrivateMethod, methodParameters);
+                        env.blocks.Add(lastCSID + 1, n_method);
+                        lastCSID += 1;
+
+                        cs.CS.Add(n_method);
+                        cs_ids.Add(n_method.ID);
+                        break;
+                    case LineType.RETURN_METHOD_DEFINITION_START:
+                        // skip for now
+                        break;
                     case LineType.ENTRYPOINT_DEFINITION_START:
                         if (last is not null)
                         {
@@ -290,7 +340,7 @@ class GXCodeProgram
 
                         env.blocks[last.ID].Lines.Add(line);
                         break;
-                    case LineType.VARIABLE_DECLARATION or LineType.STR_DECLARATION or LineType.INT_DECLARATION or LineType.DEC_DECLARATION or LineType.BOOL_DECLARATION or LineType.REX_DECLARATION or LineType.ARRAY_DECLARATION or LineType.DICT_DECLARATION or LineType.CONST_STR_DECLARATION or LineType.CONST_INT_DECLARATION or LineType.CONST_DEC_DECLARATION or LineType.CONST_BOOL_DECLARATION or LineType.CONST_REX_DECLARATION or LineType.CONST_ARRAY_DECLARATION or LineType.CONST_DICT_DECLARATION:
+                    case LineType.STR_DECLARATION or LineType.INT_DECLARATION or LineType.DEC_DECLARATION or LineType.BOOL_DECLARATION or LineType.REX_DECLARATION or LineType.ARRAY_DECLARATION or LineType.DICT_DECLARATION or LineType.CONST_STR_DECLARATION or LineType.CONST_INT_DECLARATION or LineType.CONST_DEC_DECLARATION or LineType.CONST_BOOL_DECLARATION or LineType.CONST_REX_DECLARATION or LineType.CONST_ARRAY_DECLARATION or LineType.CONST_DICT_DECLARATION:
                         if (last is null)
                         {
                             throw new GXCStrayVariableDeclarationError(ri, null);

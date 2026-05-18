@@ -1,4 +1,19 @@
 #ns test
+
+class TestClass {
+    str name = "";
+
+    method setName(str newName) {
+        name = newName;
+    }
+
+    ///
+    str getName() {
+        return name;
+    }
+    ///
+}
+
 entrypoint() {
     str abc = "def";
     int number = 0;
