@@ -51,9 +51,10 @@ public class GXC_CS_METHOD(int id, string name, bool isPrivate, string parameter
 
     public string Parameters { get; set; } = parameters;
 }
-public class GXC_CS_RETURN_METHOD(int id, string name, bool isPrivate, string returnType) : GXC_CS_ELEMENT(id)
+public class GXC_CS_RETURN_METHOD(int id, string name, bool isPrivate, string returnType, string parameters) : GXC_CS_ELEMENT(id)
 {
     public string Name { get; set; } = name;
     public bool Private { get; set; } = isPrivate;
     public string ReturnType { get; set; } = returnType;
+    public string Parameters { get; set; } = parameters;
 }

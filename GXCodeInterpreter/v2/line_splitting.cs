@@ -210,4 +210,68 @@ partial class GXCodeInterpreter
             throw new GXCodeInterpreterError("Could not detect method parameters");
         }
     }
+
+    public static string GetReturnMethodName(string line)
+    {
+        string pattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[3].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect return method name");
+        }
+    }
+
+    public static string GetReturnMethodModifier(string line)
+    {
+        string pattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[1].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect return method modifier");
+        }
+    }
+
+    public static string GetReturnMethodParameters(string line)
+    {
+        string pattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[4].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect return method parameters");
+        }
+    }
+
+    public static string GetReturnMethodReturnType(string line)
+    {
+        string pattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
+        Match match = Regex.Match(line, pattern);
+
+        if (match.Success)
+        {
+            string name = match.Groups[2].Value;
+            return name;
+        }
+        else
+        {
+            throw new GXCodeInterpreterError("Could not detect return method return type");
+        }
+    }
 }

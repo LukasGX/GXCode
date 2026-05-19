@@ -126,7 +126,31 @@ class GXCodeProgram
                         cs_ids.Add(n_method.ID);
                         break;
                     case LineType.RETURN_METHOD_DEFINITION_START:
-                        // skip for now
+                        if (last is null)
+                        {
+                            throw new GXCStrayBlockError(ri, typeof(GXC_CS_METHOD).Name, false, null);
+                        }
+                        else if (last is not GXC_CS_CLASS)
+                        {
+                            throw new GXCStrayBlockError(ri, typeof(GXC_CS_METHOD).Name, true, null);
+                        }
+
+                        string returnMethodName = GXCodeInterpreter.GetReturnMethodName(line);
+                        string returnMethodModifier = GXCodeInterpreter.GetReturnMethodModifier(line);
+                        string returnMethodParameters = GXCodeInterpreter.GetReturnMethodParameters(line);
+                        string returnMethodReturnType = GXCodeInterpreter.GetReturnMethodReturnType(line);
+
+                        if (returnMethodModifier != "" && returnMethodModifier != "private")
+                            throw new GXCWrongMethodModifierError(ri, returnMethodModifier, null);
+
+                        bool isPrivateReturnMethod = returnMethodModifier == "private";
+
+                        GXC_CS_RETURN_METHOD n_return_method = new(lastCSID + 1, returnMethodName, isPrivateReturnMethod, returnMethodParameters, returnMethodReturnType);
+                        env.blocks.Add(lastCSID + 1, n_return_method);
+                        lastCSID += 1;
+
+                        cs.CS.Add(n_return_method);
+                        cs_ids.Add(n_return_method.ID);
                         break;
                     case LineType.ENTRYPOINT_DEFINITION_START:
                         if (last is not null)
