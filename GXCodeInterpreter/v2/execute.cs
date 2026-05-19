@@ -165,6 +165,9 @@ partial class GXCodeInterpreter
                 case ShortLineType.BUILTIN_OPERATION:
                     ExecuteBuiltinOperation(line);
                     break;
+                case ShortLineType.INSTANCE_DECLARATION:
+                    DeclareInstance(line, ri, blockName);
+                    break;
                 case ShortLineType.STR_DECLARATION:
                     DeclareStr(line, ri, blockName);
                     break;

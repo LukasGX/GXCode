@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 namespace GXCodeInterpreter;
 public enum LineType
@@ -19,6 +20,7 @@ public enum LineType
     WHILE_START,
     CLOSING,
     BUILTIN_OPERATION,
+    INSTANCE_DECLARATION,
     STR_DECLARATION,
     CONST_STR_DECLARATION,
     INT_DECLARATION,
@@ -42,6 +44,7 @@ public enum LineType
 public enum ShortLineType
 {
     BUILTIN_OPERATION,
+    INSTANCE_DECLARATION,
     STR_DECLARATION,
     CONST_STR_DECLARATION,
     INT_DECLARATION,
@@ -134,6 +137,10 @@ partial class GXCodeInterpreter
         string returnBuiltinPattern = @"^\s*return\s+.*;$";
         if (Regex.IsMatch(line, returnBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
+        // instances declaration
+        string instancePattern = @"^\s*inst<(.*)>\s+[a-zA-Z0-9_]+\s*=\s*(.*);?$";
+        if (Regex.IsMatch(line, instancePattern)) return LineType.INSTANCE_DECLARATION;
+
         // variable declaration
         // const str
         string constStrDeclarationPattern = @"^\s*const\s+str(?!\s*\(\))\s+[a-zA-Z0-9]+\s*=\s*.*;$";
@@ -214,6 +221,10 @@ partial class GXCodeInterpreter
 
         string exitBuiltinPattern = @"^\s*exit;\s*$";
         if (Regex.IsMatch(line, exitBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+        // INSTANCES DECLARATION
+        string instancePattern = @"^\s*inst<(.*)>\s+[a-zA-Z0-9_]+\s*=\s*(.*);?$";
+        if (Regex.IsMatch(line, instancePattern)) return ShortLineType.INSTANCE_DECLARATION;
 
         // VARIABLE DECLARATION
         // const str

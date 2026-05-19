@@ -7,11 +7,11 @@ class TestClass {
         name = newName;
     }
 
-    ///
+    
     str getName() {
         return name;
     }
-    ///
+    
 }
 
 entrypoint() {
@@ -48,7 +48,7 @@ entrypoint() {
         out "A";
     }
 
-    iterate (numbers) {
+    iterate (abcArray) {
         out element;
     }
 

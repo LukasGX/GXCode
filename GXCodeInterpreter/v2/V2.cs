@@ -152,6 +152,14 @@ class GXCodeProgram
                         cs.CS.Add(n_return_method);
                         cs_ids.Add(n_return_method.ID);
                         break;
+                    case LineType.INSTANCE_DECLARATION:
+                        if (last is null)
+                        {
+                            throw new GXCStrayVariableDeclarationError(ri, null);
+                        }
+
+                        env.blocks[last.ID].Lines.Add(line);
+                        break;
                     case LineType.ENTRYPOINT_DEFINITION_START:
                         if (last is not null)
                         {
@@ -419,3 +427,5 @@ class GXCodeProgram
         }
     }
 }
+
+public class GXCodeClassInstance {}
