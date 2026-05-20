@@ -1,0 +1,14 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": ".NET Debug",
+			"type": "coreclr",
+			"request": "launch",
+			"program": "${workspaceFolder}/GXCodeInterpreter/bin/Debug/net9.0/GXCodeInterpreter",
+			"args": ["--gxc", "program.gxc"],
+			"cwd": "${workspaceFolder}/GXCodeInterpreter",
+			"console": "integratedTerminal"
+		}
+	]
+}
