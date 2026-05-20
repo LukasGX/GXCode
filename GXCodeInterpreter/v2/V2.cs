@@ -99,6 +99,24 @@ class GXCodeProgram
                         cs.CS.Add(n_class);
                         cs_ids.Add(n_class.ID);
                         break;
+                    case LineType.INIT_DEFINITION_START:
+                        if (last is null)
+                        {
+                            throw new GXCStrayBlockError(ri, "init block", false, null);
+                        }
+                        else if (last is not GXC_CS_CLASS)
+                        {
+                            throw new GXCStrayBlockError(ri, "init block", false, null);
+                        }
+
+                        if (env.blocks[last.ID] is GXC_CS_CLASS cls) cls.InitBlock = lastCSID + 1;
+                        GXC_CS_INIT n_init = new(lastCSID + 1, "");
+                        env.blocks.Add(lastCSID + 1, n_init);
+                        lastCSID += 1;
+
+                        cs.CS.Add(n_init);
+                        cs_ids.Add(n_init.ID);
+                        break;
                     case LineType.METHOD_DEFINITION_START:
                         if (last is null)
                         {

@@ -43,12 +43,17 @@ public class GXC_CS_CLASS(int id, string name, bool isPrivate) : GXC_CS_ELEMENT(
 {
     public string Name { get; set; } = name;
     public bool Private { get; set; } = isPrivate;
+    public int InitBlock { get; set; } = -1;
 }
 public class GXC_CS_METHOD(int id, string name, bool isPrivate, string parameters) : GXC_CS_ELEMENT(id)
 {
     public string Name { get; set; } = name;
     public bool Private { get; set; } = isPrivate;
 
+    public string Parameters { get; set; } = parameters;
+}
+public class GXC_CS_INIT(int id, string parameters) : GXC_CS_ELEMENT(id)
+{
     public string Parameters { get; set; } = parameters;
 }
 public class GXC_CS_RETURN_METHOD(int id, string name, bool isPrivate, string returnType, string parameters) : GXC_CS_ELEMENT(id)

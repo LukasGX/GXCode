@@ -78,6 +78,12 @@ namespace GXCodeInterpreter
     public class GXCNestedClassError(int lineNr, string nest, string? block) : GXCodeError("GX0022", $"Class definition must be at the top level, but is nested in {nest}", block, lineNr) {}
 
     [Serializable]
+    public class GXCWrongInstanceInitiatorError(int lineNr, string? block) : GXCodeError("GX0023", $"Could not detect a valid class instance initiator", block, lineNr) {}
+
+    [Serializable]
+    public class GXCClassMissingInitError(int lineNr, string className, string? block) : GXCodeError("GX0024", $"Class {className} is missing an init block", block, lineNr) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()

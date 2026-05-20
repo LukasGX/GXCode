@@ -1,17 +1,18 @@
 #ns test
 
-class TestClass {
-    str name = "";
-
-    method setName(str newName) {
-        name = newName;
+class Car {
+    init() {
+        str color = "red";
+        out "Car initialized";
     }
 
-    
-    str getName() {
-        return name;
+    method setColor(str newColor) {
+        color = newColor;
     }
     
+    str getColor() {
+        return color;
+    }
 }
 
 entrypoint() {
@@ -57,4 +58,6 @@ entrypoint() {
         out i;
         i += 1;
     }
+
+    inst<Car> myCar = new();
 }

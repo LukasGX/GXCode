@@ -9,6 +9,7 @@ public enum LineType
     METHOD_DEFINITION_START,
     RETURN_METHOD_DEFINITION_START,
     CLASS_DEFINITION_START,
+    INIT_DEFINITION_START,
     ENTRYPOINT_DEFINITION_START,
     IF_START,
     ELSE_IF_START,
@@ -91,9 +92,11 @@ partial class GXCodeInterpreter
         string methodPattern = @"^\s*(?:([a-z]+)\s+)?method\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
         string returnPattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
         string classPattern = @"^(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
+        string initPattern = @"^\s*init\s*\((.*?)\)\s+\{$";
         if (Regex.IsMatch(line, methodPattern)) return LineType.METHOD_DEFINITION_START;
         if (Regex.IsMatch(line, returnPattern)) return LineType.RETURN_METHOD_DEFINITION_START;
         if (Regex.IsMatch(line, classPattern)) return LineType.CLASS_DEFINITION_START;
+        if (Regex.IsMatch(line, initPattern)) return LineType.INIT_DEFINITION_START;
 
         // entrypoint definition start
         string entrypointPattern = @"^\s*entrypoint\(\)\s*\{$";
