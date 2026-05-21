@@ -4,9 +4,11 @@ namespace GXCodeInterpreter;
 
 partial class GXCodeInterpreter
 {
-    public static void ExecuteBlock(GXCodeEnvironment env, GXC_CS_ELEMENT block)
+    public static void ExecuteBlock(GXCodeEnvironment env, GXC_CS_ELEMENT block, Scope? overrideScope = null)
     {
-        GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+        if (block is not GXC_CS_INIT) GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+        
+        Scope useScope = overrideScope ?? GXCodeProgram.scopeStack.Peek();
 
         if (block is GXC_CS_IF ifBlock)
         {
@@ -32,7 +34,7 @@ partial class GXCodeInterpreter
         }
         else if (block is GXC_CS_SWITCH switchBlock)
         {
-            if (!GXCodeProgram.scopeStack.Peek().TryGet(switchBlock.Variable, out var switchVal, out var switchType))
+            if (!useScope.TryGet(switchBlock.Variable, out var switchVal, out var switchType))
             {
                 throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
             }
@@ -72,7 +74,7 @@ partial class GXCodeInterpreter
 
             if (!int.TryParse(token, out int iterations))
             {
-                if (!GXCodeProgram.scopeStack.Peek().TryGet(token, out var repeatVal, out var repeatType))
+                if (!useScope.TryGet(token, out var repeatVal, out var repeatType))
                 {
                     throw new GXCodeInterpreterError($"Unknown variable {token} in repeat statement");
                 }
@@ -91,7 +93,7 @@ partial class GXCodeInterpreter
             {
                 GXCodeHelper.Debug($"Repeat iteration {i + 1} of {iterations}");
                 // create an iteration-local scope
-                GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+                GXCodeProgram.scopeStack.Push(new Scope(useScope));
                 ExecuteBlockBody(env, repeatBlock);
                 GXCodeProgram.scopeStack.Pop();
             }
@@ -100,7 +102,7 @@ partial class GXCodeInterpreter
         }
         else if (block is GXC_CS_ITERATE iterateBlock)
         {
-            if (!GXCodeProgram.scopeStack.Peek().TryGet(iterateBlock.Variable, out var iterateVal, out var iterateType))
+            if (!useScope.TryGet(iterateBlock.Variable, out var iterateVal, out var iterateType))
             {
                 throw new GXCodeInterpreterError($"Unknown variable {iterateBlock.Variable} in iterate statement");
             }
@@ -121,8 +123,8 @@ partial class GXCodeInterpreter
             foreach (var item in collection)
             {
                 GXCodeHelper.Debug($"Iterating item: {item}");
-                GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
-                GXCodeProgram.scopeStack.Peek().Set("element", item, iterateType.Substring(0, iterateType.Length - 2));
+                GXCodeProgram.scopeStack.Push(new Scope(useScope));
+                useScope.Set("element", item, iterateType.Substring(0, iterateType.Length - 2));
                 ExecuteBlockBody(env, iterateBlock);
                 GXCodeProgram.scopeStack.Pop();
             }
@@ -133,7 +135,7 @@ partial class GXCodeInterpreter
             while (EvaluateCondition(env, whileBlock.Condition))
             {
                 GXCodeHelper.Debug("While condition is true, executing block");
-                GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+                GXCodeProgram.scopeStack.Push(new Scope(useScope));
                 ExecuteBlockBody(env, whileBlock);
                 GXCodeProgram.scopeStack.Pop();
             }

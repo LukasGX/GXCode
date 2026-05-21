@@ -44,6 +44,7 @@ public class GXC_CS_CLASS(int id, string name, bool isPrivate) : GXC_CS_ELEMENT(
     public string Name { get; set; } = name;
     public bool Private { get; set; } = isPrivate;
     public int InitBlock { get; set; } = -1;
+    public Scope Scope { get; set; } = new Scope();
 }
 public class GXC_CS_METHOD(int id, string name, bool isPrivate, string parameters) : GXC_CS_ELEMENT(id)
 {

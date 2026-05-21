@@ -28,7 +28,7 @@ partial class GXCodeInterpreter
             initDef = (GXC_CS_INIT)initDefObj;
         }
         if (initDef == null || classDef.InitBlock == -1) throw new GXCClassMissingInitError(lineNr, basis, block);
-        ExecuteBlock(env, initDef);
+        ExecuteBlock(env, initDef, classDef.Scope);
 
         GXCodeClassInstance typedValue = new();
         string storedType = $"inst<{basis}>";
