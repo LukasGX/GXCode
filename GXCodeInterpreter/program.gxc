@@ -60,4 +60,6 @@ entrypoint() {
     }
 
     inst<Car> myCar = new();
+    // myCar.setColor("red");
+    // str color = myCar.getColor();
 }

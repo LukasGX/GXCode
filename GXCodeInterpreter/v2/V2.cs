@@ -163,7 +163,7 @@ class GXCodeProgram
 
                         bool isPrivateReturnMethod = returnMethodModifier == "private";
 
-                        GXC_CS_RETURN_METHOD n_return_method = new(lastCSID + 1, returnMethodName, isPrivateReturnMethod, returnMethodParameters, returnMethodReturnType);
+                        GXC_CS_RETURN_METHOD n_return_method = new(lastCSID + 1, returnMethodName, isPrivateReturnMethod, returnMethodReturnType, returnMethodParameters);
                         env.blocks.Add(lastCSID + 1, n_return_method);
                         lastCSID += 1;
 
