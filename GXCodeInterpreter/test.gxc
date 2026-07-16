@@ -1,0 +1,8 @@
+class Test {
+    method Hello() {
+    }
+}
+
+entrypoint() {
+    inst<Test> Test = new();
+}

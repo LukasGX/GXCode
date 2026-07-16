@@ -1,5 +1,5 @@
 namespace GXCodeInterpreter;
-class GXCodeHelper
+public class GXCodeHelper
 {
     public static bool DebuggingEnabled = true;
 

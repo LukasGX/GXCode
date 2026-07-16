@@ -57,31 +57,31 @@ namespace GXCodeInterpreter
     public class GXCStrayVariableArithmeticError(int lineNr, string? block) : GXCodeError("GX0016", $"Variable arithmetic operations are not allowed at top level", block, lineNr) {}
 
     [Serializable]
-    public class GXCWrongArithmeticError(int lineNr, string? block) : GXCodeError("GX0016", $"Variable arithmetic operations are only allowed with int or dec variables", block, lineNr) {}
+    public class GXCWrongArithmeticError(int lineNr, string? block) : GXCodeError("GX0017", $"Variable arithmetic operations are only allowed with int or dec variables", block, lineNr) {}
 
     [Serializable]
-    public class GXCMultipleNamespaceError(int lineNr, string? block) : GXCodeError("GX0017", $"Multiple namespace definitions", block, lineNr) {}
+    public class GXCMultipleNamespaceError(int lineNr, string? block) : GXCodeError("GX0018", $"Multiple namespace definitions", block, lineNr) {}
 
     [Serializable]
-    public class GXCWrongNamespaceDefinitionError(int lineNr, string? block) : GXCodeError("GX0018", $"Namespace definition is only allowed at first line", block, lineNr) {}
+    public class GXCWrongNamespaceDefinitionError(int lineNr, string? block) : GXCodeError("GX0019", $"Namespace definition is only allowed at first line", block, lineNr) {}
 
     [Serializable]
-    public class GXCWrongClassModifierError(int lineNr, string tried, string? block) : GXCodeError("GX0019", $"Wrong class modifier: {tried}", block, lineNr) {}
+    public class GXCWrongClassModifierError(int lineNr, string tried, string? block) : GXCodeError("GX0020", $"Wrong class modifier: {tried}", block, lineNr) {}
 
     [Serializable]
-    public class GXCMethodMissingClassError(int lineNr, string? block) : GXCodeError("GX0020", $"Methods are only allowed inside classes", block, lineNr) {}
+    public class GXCMethodMissingClassError(int lineNr, string? block) : GXCodeError("GX0021", $"Methods are only allowed inside classes", block, lineNr) {}
 
     [Serializable]
-    public class GXCWrongMethodModifierError(int lineNr, string tried, string? block) : GXCodeError("GX0021", $"Wrong method modifier: {tried}", block, lineNr) {}
+    public class GXCWrongMethodModifierError(int lineNr, string tried, string? block) : GXCodeError("GX0022", $"Wrong method modifier: {tried}", block, lineNr) {}
 
     [Serializable]
-    public class GXCNestedClassError(int lineNr, string nest, string? block) : GXCodeError("GX0022", $"Class definition must be at the top level, but is nested in {nest}", block, lineNr) {}
+    public class GXCNestedClassError(int lineNr, string nest, string? block) : GXCodeError("GX0023", $"Class definition must be at the top level, but is nested in {nest}", block, lineNr) {}
 
     [Serializable]
-    public class GXCWrongInstanceInitiatorError(int lineNr, string? block) : GXCodeError("GX0023", $"Could not detect a valid class instance initiator", block, lineNr) {}
+    public class GXCWrongInstanceInitiatorError(int lineNr, string? block) : GXCodeError("GX0024", $"Could not detect a valid class instance initiator", block, lineNr) {}
 
     [Serializable]
-    public class GXCClassMissingInitError(int lineNr, string className, string? block) : GXCodeError("GX0024", $"Class {className} is missing an init block", block, lineNr) {}
+    public class GXCClassMissingInitError(int lineNr, string className, string? block) : GXCodeError("GX0025", $"Class {className} is missing an init block", block, lineNr) {}
 
     [Serializable]
     public class GXCodeBreak : Exception

@@ -163,7 +163,7 @@ partial class GXCodeInterpreter
                 case ShortLineType.UNKNOWN:
                     throw new GXCodeInterpreterError($"Undetected indeterminable line structure of {line}");
                 case ShortLineType.BUILTIN_OPERATION:
-                    ExecuteBuiltinOperation(line);
+                    ExecuteBuiltinOperation(line, ri);
                     break;
                 case ShortLineType.INSTANCE_DECLARATION:
                     DeclareInstance(line, ri, blockName, env);
@@ -224,7 +224,7 @@ partial class GXCodeInterpreter
         }
     }
 
-    public static void ExecuteBuiltinOperation(string line)
+    public static void ExecuteBuiltinOperation(string line, int lineNr)
         {
             // out
             string outPattern = @"^\s*out\s+(.*);$";
@@ -234,13 +234,26 @@ partial class GXCodeInterpreter
             {
                 string output = outMatch.Groups[1].Value;
 
-                if (GXCodeProgram.scopeStack.Peek().TryGet(output, out object? variableValue, out var type))
+                if (output.StartsWith('"') && output.EndsWith('"'))
+                {
+                    Console.WriteLine(output.Trim('"'));
+                }
+                else if (
+                    int.TryParse(output, out _) ||
+                    decimal.TryParse(output, out _) ||
+                    bool.TryParse(output, out _)
+                    // ignoring rex for now
+                )
+                {
+                    Console.WriteLine(output);
+                }
+                else if (GXCodeProgram.scopeStack.Peek().TryGet(output, out object? variableValue, out var type))
                 {
                     Console.WriteLine(variableValue);
                 }
                 else
                 {
-                    Console.WriteLine(output.Trim('"'));
+                    throw new GXCUndeclaredVariableError(lineNr, output, null);
                 }
                 return;
             }

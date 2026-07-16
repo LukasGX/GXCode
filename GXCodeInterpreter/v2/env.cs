@@ -56,7 +56,7 @@ public class Scope
     }
 }
 
-class GXCodeEnvironment(string code, List<string> lines)
+public class GXCodeEnvironment(string code, List<string> lines)
 {
     public string Code { get; set; } = code;
     public List<string> Lines { get; set; } = lines;

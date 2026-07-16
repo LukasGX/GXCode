@@ -91,7 +91,7 @@ partial class GXCodeInterpreter
         // definition start
         string methodPattern = @"^\s*(?:([a-z]+)\s+)?method\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
         string returnPattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
-        string classPattern = @"^(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
+        string classPattern = @"^\s*(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
         string initPattern = @"^\s*init\s*\((.*?)\)\s+\{$";
         if (Regex.IsMatch(line, methodPattern)) return LineType.METHOD_DEFINITION_START;
         if (Regex.IsMatch(line, returnPattern)) return LineType.RETURN_METHOD_DEFINITION_START;
