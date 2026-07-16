@@ -7,7 +7,9 @@ public enum LineType
     COMMENT,
     NAMESPACE_DEFINITION,
     METHOD_DEFINITION_START,
+    METHOD_CALL,
     RETURN_METHOD_DEFINITION_START,
+    RETURN_METHOD_CALL,
     CLASS_DEFINITION_START,
     INIT_DEFINITION_START,
     ENTRYPOINT_DEFINITION_START,
@@ -97,6 +99,13 @@ partial class GXCodeInterpreter
         if (Regex.IsMatch(line, returnPattern)) return LineType.RETURN_METHOD_DEFINITION_START;
         if (Regex.IsMatch(line, classPattern)) return LineType.CLASS_DEFINITION_START;
         if (Regex.IsMatch(line, initPattern)) return LineType.INIT_DEFINITION_START;
+
+        // method calls
+        string methodCallPattern = @"^\s*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\((.*)\)";
+        if (Regex.IsMatch(line, methodCallPattern)) return LineType.METHOD_CALL;
+
+        string returnMethodCallPattern = @"^\s*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\((.*)\)";
+        if (Regex.IsMatch(line, returnMethodCallPattern)) return LineType.RETURN_METHOD_CALL;
 
         // entrypoint definition start
         string entrypointPattern = @"^\s*entrypoint\(\)\s*\{$";
