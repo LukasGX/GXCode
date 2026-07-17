@@ -10,7 +10,7 @@ public class GXCodeHelper
         return lines;
     }
     public static void Debug(string message) {
-        if (!GXCodeHelper.DebuggingEnabled) return;
+        if (!DebuggingEnabled) return;
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"[DEBUG] {message}");
         Console.ResetColor();

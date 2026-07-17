@@ -68,7 +68,7 @@ public enum ShortLineType
     UNKNOWN
 }
 
-partial class GXCodeInterpreter
+public partial class GXCodeInterpreter
 {
     public static LineType GetLineType(string line, bool inMultiLineComment)
     {
