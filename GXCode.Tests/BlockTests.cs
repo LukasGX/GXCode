@@ -286,4 +286,70 @@ public class BlockTests
         var initBlock = Assert.IsType<GXC_CS_INIT>(env.blocks[1]);
         Assert.Empty(initBlock.Lines);
     }
+
+    [Fact]
+    public void Single_Method()
+    {
+        string code = """
+        class Car {
+            str color = "";
+
+            method ChangeColor(str newColor) {
+                color = newColor;
+            }
+        }
+
+        entrypoint() {
+        }
+        """;
+        List<string> lines = GXCodeHelper.SplitCode(code);
+
+        ExecutionResult result = GXCodeRoot.Start(code, lines);
+        GXCodeEnvironment? env = result.Env;
+
+        Assert.NotNull(env);
+        Assert.Equal(3, env.blocks.Count);
+
+        Assert.IsType<GXC_CS_ENTRYPOINT>(env.blocks[2]);
+
+        var classBlock = Assert.IsType<GXC_CS_CLASS>(env.blocks[0]);
+        Assert.Single(classBlock.Lines);
+
+        var methodBlock = Assert.IsType<GXC_CS_METHOD>(env.blocks[1]);
+        Assert.Single(methodBlock.Lines);
+        Assert.Equal("        color = newColor;", methodBlock.Lines[0]);
+    }
+
+    [Fact]
+    public void Single_ReturnMethod()
+    {
+        string code = """
+        class Car {
+            str color = "";
+
+            str GetColor() {
+                return color;
+            }
+        }
+
+        entrypoint() {
+        }
+        """;
+        List<string> lines = GXCodeHelper.SplitCode(code);
+
+        ExecutionResult result = GXCodeRoot.Start(code, lines);
+        GXCodeEnvironment? env = result.Env;
+
+        Assert.NotNull(env);
+        Assert.Equal(3, env.blocks.Count);
+
+        Assert.IsType<GXC_CS_ENTRYPOINT>(env.blocks[2]);
+
+        var classBlock = Assert.IsType<GXC_CS_CLASS>(env.blocks[0]);
+        Assert.Single(classBlock.Lines);
+
+        var returnMethodBlock = Assert.IsType<GXC_CS_RETURN_METHOD>(env.blocks[1]);
+        Assert.Single(returnMethodBlock.Lines);
+        Assert.Equal("        return color;", returnMethodBlock.Lines[0]);
+    }
 }
