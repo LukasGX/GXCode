@@ -70,6 +70,12 @@ public class GXCodeProgram
             System.Environment.Exit(0);
         }
     }
+
+    public static void ResetScopeStack()
+    {
+        scopeStack.Clear();
+        scopeStack.Push(new Scope());
+    }
 }
 
 public class GXCodeClassInstance {}
