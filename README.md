@@ -201,8 +201,9 @@ str color = car.GetColor();
 - Assignment: `=`
 - Comparison: `==`
 - Negative comparison: `!=`
-- Arithmetic: `+=` `-=` `*=` and `+` `-` `*` `/`
-- Root (nth root): `rt` (example: rt 2 = square root of 2; rt3 50 = cube root of 50)
+- Arithmetic: `+=` `-=` `*=` `/=` and `+` `-` `*` `/`
+- Root (nth root): `rt` and `rt=`
+    - example: `rt 2` = square root of 2; `rt3 50` = cube root of 50
 
 ## Package management
 
