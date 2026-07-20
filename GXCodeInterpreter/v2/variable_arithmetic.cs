@@ -5,7 +5,7 @@ partial class GXCodeInterpreter
 {
     public static void PerformVariableArithmetic(string line, int lineNr, string block)
     {
-        string pattern = @"^\s*([a-zA-Z0-9]+)\s*([*+\-]=|-=|\*=)\s*(.*);$";
+        string pattern = @"^\s*([a-zA-Z0-9]+)\s*(\+=|-=|\*=|/=)\s*(.*);$";
         Match match = Regex.Match(line, pattern);
 
         if (!match.Success)
@@ -52,6 +52,7 @@ partial class GXCodeInterpreter
                 "+=" => currInt + operand,
                 "-=" => currInt - operand,
                 "*=" => currInt * operand,
+                "/=" => currInt / operand,
                 _ => throw new GXCodeInterpreterError("Unknown arithmetic operator")
             };
 
@@ -98,6 +99,7 @@ partial class GXCodeInterpreter
                 "+=" => currDec + operand,
                 "-=" => currDec - operand,
                 "*=" => currDec * operand,
+                "/=" => currDec / operand,
                 _ => throw new GXCodeInterpreterError("Unknown arithmetic operator")
             };
 
