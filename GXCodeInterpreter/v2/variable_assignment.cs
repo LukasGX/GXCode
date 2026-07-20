@@ -22,6 +22,11 @@ partial class GXCodeInterpreter
             throw new GXCUndeclaredVariableError(lineNr, name, block);
         }
 
+        if (GXCodeProgram.scopeStack.Peek().Variables[name].IsConstant)
+        {
+            throw new GXCConstantAssignmentError(lineNr, name, block);
+        }
+
         if (type is null)
         {
             throw new GXCUndeclaredVariableError(lineNr, name, block);

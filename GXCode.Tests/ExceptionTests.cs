@@ -435,4 +435,23 @@ public class ParserErrorTests
             GXCodeRoot.Start(content, lines);
         });
     }
+
+    [Fact]
+    public void ConstantAssignment_Should_Throw()
+    {
+        string content =
+        """
+        entrypoint() {
+            const str msg = "Hi";
+            msg = "Hello";
+        }
+        """;
+
+        List<string> lines = GXCodeHelper.SplitCode(content);
+
+        Assert.Throws<GXCConstantAssignmentError>(() =>
+        {
+            GXCodeRoot.Start(content, lines);
+        });
+    }
 }

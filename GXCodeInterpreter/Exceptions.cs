@@ -84,6 +84,9 @@ namespace GXCodeInterpreter
     public class GXCClassMissingInitError(int lineNr, string className, string? block) : GXCodeError("GX0025", $"Class {className} is missing an init block", block, lineNr) {}
 
     [Serializable]
+    public class GXCConstantAssignmentError(int lineNr, string requestedVar, string? block) : GXCodeError("GX0026", $"Cannot assign to constant variable {requestedVar}", block, lineNr) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()
