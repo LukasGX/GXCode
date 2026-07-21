@@ -205,6 +205,11 @@ partial class GXCodeInterpreter
                     {
                         typedValue = intValue;
                     }
+                    else if (CalculateIntArithmetic(value) != null)
+                    {
+                        int val = CalculateIntArithmetic(value) ?? throw new GXCodeInterpreterError("CalculateIntArithmetic can not be null but is null");
+                        typedValue = val;
+                    }
                     else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out object? varValue, out string? varType) && varType == "int")
                     {
                         if (varValue is not int)
@@ -222,6 +227,11 @@ partial class GXCodeInterpreter
                     if (decimal.TryParse(value, out decimal decValue))
                     {
                         typedValue = decValue;
+                    }
+                    else if (CalculateDecArithmetic(value) != null)
+                    {
+                        decimal val = CalculateDecArithmetic(value) ?? throw new GXCodeInterpreterError("CalculateIntArithmetic can not be null but is null");
+                        typedValue = val;
                     }
                     else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out object? varValue, out string? varType) && varType == "dec")
                     {

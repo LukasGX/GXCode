@@ -26,7 +26,6 @@ partial class GXCodeInterpreter
         return parts;
     }
 
-    // Scalar-specific declare methods (no shared DoDeclare)
     public static void DeclareStr(string line, int lineNr, string block)
     {
         string pattern = @"^\s*str\s*([a-zA-Z0-9]+)\s*=\s*(.*);$";
@@ -46,8 +45,15 @@ partial class GXCodeInterpreter
         if (!m.Success) throw new GXCodeInterpreterError("Could not detect int declaration");
         string name = m.Groups[1].Value;
         string value = m.Groups[2].Value.Trim();
-        if (!int.TryParse(value, out int intValue)) throw new GXCWrongTypeError(lineNr, value, "int", block);
-        GXCodeProgram.scopeStack.Peek().Set(name, intValue, "int", isConst: false);
+
+        bool parseTest = int.TryParse(value, out int intValue);
+        if (parseTest)
+            GXCodeProgram.scopeStack.Peek().Set(name, intValue, "int", isConst: false);
+        else
+        {
+            int? val = CalculateIntArithmetic(value) ?? throw new GXCWrongTypeError(lineNr, value, "int", block);
+            GXCodeProgram.scopeStack.Peek().Set(name, val, "int", isConst: false);
+        }
     }
 
     public static void DeclareDec(string line, int lineNr, string block)
@@ -57,8 +63,15 @@ partial class GXCodeInterpreter
         if (!m.Success) throw new GXCodeInterpreterError("Could not detect dec declaration");
         string name = m.Groups[1].Value;
         string value = m.Groups[2].Value.Trim();
-        if (!decimal.TryParse(value, out decimal decValue)) throw new GXCWrongTypeError(lineNr, value, "dec", block);
-        GXCodeProgram.scopeStack.Peek().Set(name, decValue, "dec", isConst: false);
+
+        bool parseTest = decimal.TryParse(value, out decimal decValue);
+        if (parseTest)
+            GXCodeProgram.scopeStack.Peek().Set(name, decValue, "dec", isConst: false);
+        else
+        {
+            decimal? val = CalculateDecArithmetic(value) ?? throw new GXCWrongTypeError(lineNr, value, "dec", block);
+            GXCodeProgram.scopeStack.Peek().Set(name, val, "dec", isConst: false);
+        }
     }
 
     public static void DeclareBool(string line, int lineNr, string block)
