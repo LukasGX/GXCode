@@ -40,6 +40,9 @@ public enum LineType
     CONST_DICT_DECLARATION,
     VARIABLE_ASSIGNMENT,
     VARIABLE_ARITHMETIC,
+
+    INCREMENT,
+    DECREMENT,
     UNKNOWN,
     NEGLIGIBLE
 }
@@ -65,6 +68,8 @@ public enum ShortLineType
     VARIABLE_ASSIGNMENT,
     VARIABLE_ARITHMETIC,
     BLOCK_INDICATOR,
+    INCREMENT,
+    DECREMENT,
     UNKNOWN
 }
 
@@ -218,6 +223,14 @@ public partial class GXCodeInterpreter
         string arithmeticPattern = @"^\s*[a-zA-Z0-9]+\s*(?:[*+]-=|\*=|\+=|-=|\*=)\s*.*;$";
         if (Regex.IsMatch(line, arithmeticPattern)) return LineType.VARIABLE_ARITHMETIC;
 
+        // increment
+        string incrementPattern = @"^\s*([a-zA-Z0-9]+)\s*\+\+;$";
+        if (Regex.IsMatch(line, incrementPattern)) return LineType.INCREMENT;
+
+        // decrement
+        string decrementPattern = @"^\s*([a-zA-Z0-9]+)\s*--;$";
+        if (Regex.IsMatch(line, decrementPattern)) return LineType.DECREMENT;
+
         // unknown
         return LineType.UNKNOWN;
     }
@@ -306,6 +319,14 @@ public partial class GXCodeInterpreter
         // BLOCK INDICATOR
         string blockIndicatorPattern = @"^\s*\[BLOCK\s+[0-99999999999]+\]\s*$";
         if (Regex.IsMatch(line, blockIndicatorPattern)) return ShortLineType.BLOCK_INDICATOR;
+
+        // INCREMENT
+        string incrementPattern = @"^\s*([a-zA-Z0-9]+)\s*\+\+;$";
+        if (Regex.IsMatch(line, incrementPattern)) return ShortLineType.INCREMENT;
+
+        // DECREMENT
+        string decrementPattern = @"^\s*([a-zA-Z0-9]+)\s*--;$";
+        if (Regex.IsMatch(line, decrementPattern)) return ShortLineType.DECREMENT;
 
         return ShortLineType.UNKNOWN;
     }

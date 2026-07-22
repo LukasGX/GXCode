@@ -87,6 +87,12 @@ namespace GXCodeInterpreter
     public class GXCConstantAssignmentError(int lineNr, string requestedVar, string? block) : GXCodeError("GX0026", $"Cannot assign to constant variable {requestedVar}", block, lineNr) {}
 
     [Serializable]
+    public class GXCFastVarActionWrongVarTypeError(int lineNr, string triedType, string triedAction, string? block) : GXCodeError("GX0027", $"Cannot use type {triedType} in {triedAction}", block, lineNr) {}
+
+    [Serializable]
+    public class GXCWrongConditionError(string tried, string msg, string? block) : GXCodeError("GX0028", $"Condition {tried} is invalid: {msg}", block, -1) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()

@@ -469,6 +469,14 @@ public class GXCodeRoot
 
                     env.blocks[last.ID].Lines.Add(line);
                     break;
+                case LineType.INCREMENT or LineType.DECREMENT:
+                    if (last is null)
+                    {
+                        throw new GXCStrayBuiltinOperationError(ri, false, null);
+                    }
+
+                    env.blocks[last.ID].Lines.Add(line);
+                    break;
             }
         }
 

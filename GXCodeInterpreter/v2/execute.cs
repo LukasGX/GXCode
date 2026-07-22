@@ -7,13 +7,15 @@ partial class GXCodeInterpreter
     public static void ExecuteBlock(GXCodeEnvironment env, GXC_CS_ELEMENT block, Scope? overrideScope = null)
     {
         if (block is not GXC_CS_INIT) GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+
+        string blockName = block.GetType().ToString() + "#" + block.ID;
         
         Scope useScope = overrideScope ?? GXCodeProgram.scopeStack.Peek();
 
         if (block is GXC_CS_IF ifBlock)
         {
             GXCodeHelper.Debug($"Evaluating IF condition: {ifBlock.Condition}");
-            bool isTrue = EvaluateCondition(env, ifBlock.Condition);
+            bool isTrue = EvaluateConditions(ifBlock.Condition, blockName);
             if (!isTrue)
             {
                 GXCodeHelper.Debug("Condition is false, skipping IF block");
@@ -24,7 +26,7 @@ partial class GXCodeInterpreter
         else if (block is GXC_CS_ELSE_IF elseIfBlock)
         {
             GXCodeHelper.Debug($"Evaluating ELSE IF condition: {elseIfBlock.Condition}");
-            bool isTrue = EvaluateCondition(env, elseIfBlock.Condition);
+            bool isTrue = EvaluateConditions(elseIfBlock.Condition, blockName);
             if (!isTrue)
             {
                 GXCodeHelper.Debug("Condition is false, skipping ELSE IF block");
@@ -132,7 +134,7 @@ partial class GXCodeInterpreter
         }
         else if (block is GXC_CS_WHILE whileBlock)
         {
-            while (EvaluateCondition(env, whileBlock.Condition))
+            while (EvaluateConditions(whileBlock.Condition, blockName))
             {
                 GXCodeHelper.Debug("While condition is true, executing block");
                 GXCodeProgram.scopeStack.Push(new Scope(useScope));
@@ -217,6 +219,12 @@ partial class GXCodeInterpreter
                     break;
                 case ShortLineType.VARIABLE_ARITHMETIC:
                     PerformVariableArithmetic(line, ri, blockName);
+                    break;
+                case ShortLineType.INCREMENT:
+                    IncrementVariable(line, ri, blockName);
+                    break;
+                case ShortLineType.DECREMENT:
+                    DecrementVariable(line, ri, blockName);
                     break;
                 case ShortLineType.BLOCK_INDICATOR:
                     int nestedId = int.Parse(Regex.Match(line, @"^\s*\[BLOCK\s+([0-99999999999]+)\]\s*$").Groups[1].Value);
