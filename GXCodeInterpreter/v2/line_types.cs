@@ -68,6 +68,7 @@ public enum ShortLineType
     VARIABLE_ASSIGNMENT,
     VARIABLE_ARITHMETIC,
     BLOCK_INDICATOR,
+    METHOD_CALL,
     INCREMENT,
     DECREMENT,
     UNKNOWN
@@ -246,6 +247,10 @@ public partial class GXCodeInterpreter
 
         string exitBuiltinPattern = @"^\s*exit;\s*$";
         if (Regex.IsMatch(line, exitBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+        // METHOD CALL
+        string methodCallPattern = @"^\s*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\((.*)\)";
+        if (Regex.IsMatch(line, methodCallPattern)) return ShortLineType.METHOD_CALL;
 
         // INSTANCES DECLARATION
         string instancePattern = @"^\s*inst<(.*)>\s+[a-zA-Z0-9_]+\s*=\s*(.*);?$";

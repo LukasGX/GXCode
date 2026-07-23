@@ -93,6 +93,12 @@ namespace GXCodeInterpreter
     public class GXCWrongConditionError(string tried, string msg, string? block) : GXCodeError("GX0028", $"Condition {tried} is invalid: {msg}", block, -1) {}
 
     [Serializable]
+    public class GXCStrayMethodCallError(int lineNr, bool classLevel, string? block) : GXCodeError("GX0029", $"Method calls are not allowed at {(classLevel ? "class" : "top")} level", block, lineNr) {}
+
+    [Serializable]
+    public class GXCNotAnInstanceError(int lineNr, string tried, string? block) : GXCodeError("GX0029", $"{tried} is not a class instance", block, lineNr) {}
+
+    [Serializable]
     public class GXCodeBreak : Exception
     {
         public GXCodeBreak()

@@ -1,3 +1,5 @@
+using System.ComponentModel.Design.Serialization;
+
 namespace GXCodeInterpreter;
 public class GXCodeProgram
 {
@@ -191,7 +193,7 @@ public class GXCodeRoot
 
                     bool isPrivateMethod = methodModifier == "private";
 
-                    GXC_CS_METHOD n_method = new(lastCSID + 1, methodName, isPrivateMethod, methodParameters);
+                    GXC_CS_METHOD n_method = new(lastCSID + 1, methodName, isPrivateMethod, methodParameters, last.ID);
                     env.blocks.Add(lastCSID + 1, n_method);
                     lastCSID += 1;
 
@@ -218,7 +220,7 @@ public class GXCodeRoot
 
                     bool isPrivateReturnMethod = returnMethodModifier == "private";
 
-                    GXC_CS_RETURN_METHOD n_return_method = new(lastCSID + 1, returnMethodName, isPrivateReturnMethod, returnMethodParameters, returnMethodReturnType);
+                    GXC_CS_RETURN_METHOD n_return_method = new(lastCSID + 1, returnMethodName, isPrivateReturnMethod, returnMethodParameters, returnMethodReturnType, last.ID);
                     env.blocks.Add(lastCSID + 1, n_return_method);
                     lastCSID += 1;
 
@@ -473,6 +475,18 @@ public class GXCodeRoot
                     if (last is null)
                     {
                         throw new GXCStrayBuiltinOperationError(ri, false, null);
+                    }
+
+                    env.blocks[last.ID].Lines.Add(line);
+                    break;
+                case LineType.METHOD_CALL:
+                    if (last is null)
+                    {
+                        throw new GXCStrayMethodCallError(ri, false, null);
+                    }
+                    else if (last is GXC_CS_CLASS)
+                    {
+                        throw new GXCStrayMethodCallError(ri, true, null);
                     }
 
                     env.blocks[last.ID].Lines.Add(line);

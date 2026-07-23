@@ -226,6 +226,9 @@ partial class GXCodeInterpreter
                 case ShortLineType.DECREMENT:
                     DecrementVariable(line, ri, blockName);
                     break;
+                case ShortLineType.METHOD_CALL:
+                    CallMethod(env, line, ri, blockName);
+                    break;
                 case ShortLineType.BLOCK_INDICATOR:
                     int nestedId = int.Parse(Regex.Match(line, @"^\s*\[BLOCK\s+([0-99999999999]+)\]\s*$").Groups[1].Value);
                     ExecuteBlock(env, env.blocks[nestedId]);

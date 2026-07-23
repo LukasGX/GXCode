@@ -1,3 +1,5 @@
+using System.Reflection.Metadata;
+
 namespace GXCodeInterpreter;
 public class Callstack ()
 {
@@ -46,21 +48,22 @@ public class GXC_CS_CLASS(int id, string name, bool isPrivate) : GXC_CS_ELEMENT(
     public int InitBlock { get; set; } = -1;
     public Scope Scope { get; set; } = new Scope();
 }
-public class GXC_CS_METHOD(int id, string name, bool isPrivate, string parameters) : GXC_CS_ELEMENT(id)
+public class GXC_CS_METHOD(int id, string name, bool isPrivate, string parameters, int parentClass) : GXC_CS_ELEMENT(id)
 {
     public string Name { get; set; } = name;
     public bool Private { get; set; } = isPrivate;
-
     public string Parameters { get; set; } = parameters;
+    public int ParentClass { get; set; } = parentClass;
 }
 public class GXC_CS_INIT(int id, string parameters) : GXC_CS_ELEMENT(id)
 {
     public string Parameters { get; set; } = parameters;
 }
-public class GXC_CS_RETURN_METHOD(int id, string name, bool isPrivate, string returnType, string parameters) : GXC_CS_ELEMENT(id)
+public class GXC_CS_RETURN_METHOD(int id, string name, bool isPrivate, string returnType, string parameters, int parentClass) : GXC_CS_ELEMENT(id)
 {
     public string Name { get; set; } = name;
     public bool Private { get; set; } = isPrivate;
     public string ReturnType { get; set; } = returnType;
     public string Parameters { get; set; } = parameters;
+    public int ParentClass { get; set; } = parentClass;
 }
