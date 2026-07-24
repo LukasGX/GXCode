@@ -9,6 +9,10 @@ class Car {
     method setColor(str newColor) {
         color = newColor;
     }
+
+    method printTest() {
+        out "test";
+    }
     
     str getColor() {
         return color;
@@ -60,6 +64,6 @@ entrypoint() {
     }
 
     inst<Car> myCar = new();
-    // myCar.setColor("red");
+    myCar.printTest();
     // str color = myCar.getColor();
 }
