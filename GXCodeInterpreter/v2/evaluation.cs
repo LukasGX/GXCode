@@ -31,9 +31,11 @@ partial class GXCodeInterpreter
                 rev = false;
             }
 
-            if (GXCodeProgram.scopeStack.Peek().TryGet(checkVar, out var val, out var type) && type == "bool")
+            Variable? variable = GXCodeEnvironment.GetVariable(checkVar);
+
+            if (variable is not null && variable.Type == "bool")
             {
-                if (val is not bool b) return false;
+                if (variable.Value is not bool b) return false;
                 return rev ? !b : b;
             }
             throw new GXCodeInterpreterError($"Could not evaluate condition: {condition}");
@@ -50,13 +52,14 @@ partial class GXCodeInterpreter
             if (int.TryParse(token, out var i)) return i;
             if (decimal.TryParse(token, out var d)) return d;
             // variable lookup
-            if (GXCodeProgram.scopeStack.Peek().TryGet(token, out var v, out var t))
+            Variable? variable = GXCodeEnvironment.GetVariable(token);
+            if (variable is not null)
             {
-                if (v is null)
+                if (variable.Value is null)
                 {
                     throw new GXCodeInterpreterError($"Variable {token} is null");
                 }
-                return v;
+                return variable.Value;
             };
             throw new GXCodeInterpreterError($"Unknown identifier in condition: {token}");
         }

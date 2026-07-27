@@ -32,28 +32,6 @@ public class Scope
 
         Variables[name] = new Variable(name, value, type, isConst);
     }
-    
-    public bool TryGet(string name, out object? value, out string? type)
-    {
-        for (var scope = this; scope != null; scope = scope.Parent)
-        {
-            if (scope.Variables.TryGetValue(name, out var variable))
-            {
-                value = variable.Value;
-                type = variable.Type;
-                return true;
-            }
-        }
-        
-        value = null;
-        type = null;
-        return false;
-    }
-    
-    public bool HasType(string name, string expectedType)
-    {
-        return TryGet(name, out _, out var type) && type == expectedType;
-    }
 }
 
 public class GXCodeEnvironment(string code, List<string> lines)
@@ -62,4 +40,22 @@ public class GXCodeEnvironment(string code, List<string> lines)
     public List<string> Lines { get; set; } = lines;
     public string Namespace { get; set; } = "";
     public Dictionary<int, GXC_CS_ELEMENT> blocks = new();
+
+    public static Variable? GetVariable(string name)
+    {
+        foreach (Scope scope in GXCodeProgram.scopeStack)
+        {
+            if (scope.Variables.TryGetValue(name, out Variable? variable))
+                return variable;
+        }
+
+        return null;
+    }
+
+    public static Variable? GetVariable(string name, Scope overrideScope)
+    {
+        if (overrideScope.Variables.TryGetValue(name, out Variable? variable))
+            return variable;
+        else return null;
+    }
 }

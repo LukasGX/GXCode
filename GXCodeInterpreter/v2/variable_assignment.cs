@@ -17,10 +17,10 @@ partial class GXCodeInterpreter
         string name = match.Groups[1].Value;
         string value = match.Groups[2].Value.Trim();
 
-        if (!GXCodeProgram.scopeStack.Peek().TryGet(name, out _, out var type))
-        {
-            throw new GXCUndeclaredVariableError(lineNr, name, block);
-        }
+        Variable? variable = GXCodeEnvironment.GetVariable(name)
+            ?? throw new GXCUndeclaredVariableError(lineNr, name, block);
+
+        var type = variable.Type;
 
         if (GXCodeProgram.scopeStack.Peek().Variables[name].IsConstant)
         {
@@ -61,14 +61,21 @@ partial class GXCodeInterpreter
         {
             string baseType = type.Substring(0, type.Length - 2);
 
+            Variable? arr = GXCodeEnvironment.GetVariable(value);
+
             // assign from another variable of same type
-            if (GXCodeProgram.scopeStack.Peek().TryGet(value, out var varVal, out var varType) && varType == type)
+            if (arr is not null && arr.Type == type)
             {
-                if (varVal is not List<string> && varVal is not List<int> && varVal is not List<decimal> && varVal is not List<bool> && varVal is not List<Regex>)
+                if (arr.Value is not List<string> &&
+                    arr.Value is not List<int> &&
+                    arr.Value is not List<decimal> &&
+                    arr.Value is not List<bool> &&
+                    arr.Value is not List<Regex>
+                )
                 {
                     throw new GXCWrongTypeError(lineNr, value, type, block);
                 }
-                typedValue = varVal;
+                typedValue = arr.Value;
             }
             else
             {
@@ -140,13 +147,15 @@ partial class GXCodeInterpreter
             string keyType = type.Substring(0, braceOpen);
             string valType = type.Substring(braceOpen + 1, type.Length - braceOpen - 2);
 
-            if (GXCodeProgram.scopeStack.Peek().TryGet(value, out var varVal, out var varType) && varType == type)
+            Variable? dict = GXCodeEnvironment.GetVariable(value);
+
+            if (dict is not null && dict.Type == type)
             {
-                if (varVal is not Dictionary<string, string>)
+                if (dict.Value is not Dictionary<string, string>)
                 {
                     throw new GXCWrongTypeError(lineNr, value, type, block);
                 }
-                typedValue = varVal;
+                typedValue = dict.Value;
             }
             else
             {
@@ -183,17 +192,19 @@ partial class GXCodeInterpreter
             switch (type)
             {
                 case "str":
+                    Variable? str = GXCodeEnvironment.GetVariable(value);
+
                     if (value.StartsWith('"') && value.EndsWith('"'))
                     {
                         typedValue = value.Trim('"');
                     }
-                    else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out object? varValue, out var varType) && varType == "str")
+                    else if (str is not null && str.Type == "str")
                     {
-                        if (varValue is not string)
+                        if (str.Value is not string)
                         {
                             throw new GXCWrongTypeError(lineNr, value, "str", block);
                         }
-                        typedValue = varValue;
+                        typedValue = str.Value;
                     }
                     else
                     {
@@ -201,6 +212,8 @@ partial class GXCodeInterpreter
                     }
                     break;
                 case "int":
+                    Variable? integer = GXCodeEnvironment.GetVariable(value);
+
                     if (int.TryParse(value, out int intValue))
                     {
                         typedValue = intValue;
@@ -210,13 +223,13 @@ partial class GXCodeInterpreter
                         int val = CalculateIntArithmetic(value) ?? throw new GXCodeInterpreterError("CalculateIntArithmetic can not be null but is null");
                         typedValue = val;
                     }
-                    else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out object? varValue, out string? varType) && varType == "int")
+                    else if (integer is not null && integer.Type == "int")
                     {
-                        if (varValue is not int)
+                        if (integer.Value is not int)
                         {
                             throw new GXCWrongTypeError(lineNr, value, "int", block);
                         }
-                        typedValue = varValue;
+                        typedValue = integer.Value;
                     }
                     else
                     {
@@ -224,6 +237,8 @@ partial class GXCodeInterpreter
                     }
                     break;
                 case "dec":
+                    Variable? dec = GXCodeEnvironment.GetVariable(value);
+
                     if (decimal.TryParse(value, out decimal decValue))
                     {
                         typedValue = decValue;
@@ -233,13 +248,13 @@ partial class GXCodeInterpreter
                         decimal val = CalculateDecArithmetic(value) ?? throw new GXCodeInterpreterError("CalculateIntArithmetic can not be null but is null");
                         typedValue = val;
                     }
-                    else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out object? varValue, out string? varType) && varType == "dec")
+                    else if (dec is not null && dec.Type == "dec")
                     {
-                        if (varValue is not decimal)
+                        if (dec.Value is not decimal)
                         {
                             throw new GXCWrongTypeError(lineNr, value, "dec", block);
                         }
-                        typedValue = varValue;
+                        typedValue = dec.Value;
                     }
                     else
                     {
@@ -247,17 +262,19 @@ partial class GXCodeInterpreter
                     }
                     break;
                 case "bool":
+                    Variable? boolean = GXCodeEnvironment.GetVariable(value);
+
                     if (bool.TryParse(value, out bool boolValue))
                     {
                         typedValue = boolValue;
                     }
-                    else if (GXCodeProgram.scopeStack.Peek().TryGet(value, out object? varValue, out string? varType) && varType == "bool")
+                    else if (boolean is not null && boolean.Type == "bool")
                     {
-                        if (varValue is not bool)
+                        if (boolean.Value is not bool)
                         {
                             throw new GXCWrongTypeError(lineNr, value, "bool", block);
                         }
-                        typedValue = varValue;
+                        typedValue = boolean.Value;
                     }
                     else
                     {
@@ -265,19 +282,21 @@ partial class GXCodeInterpreter
                     }
                     break;
                 case "rex":
+                    Variable? rex = GXCodeEnvironment.GetVariable(value);
+                    
                     try
                     {
                         typedValue = new Regex(value);
                     }
                     catch
                     {
-                        if (GXCodeProgram.scopeStack.Peek().TryGet(value, out object? varValue, out string? varType) && varType == "rex")
+                        if (rex is not null && rex.Type == "rex")
                         {
-                            if (varValue is not Regex)
+                            if (rex.Value is not Regex)
                             {
                                 throw new GXCWrongTypeError(lineNr, value, "rex", block);
                             }
-                            typedValue = varValue;
+                            typedValue = rex.Value;
                         }
                         else
                         {

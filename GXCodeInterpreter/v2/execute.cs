@@ -36,10 +36,9 @@ partial class GXCodeInterpreter
         }
         else if (block is GXC_CS_SWITCH switchBlock)
         {
-            if (!useScope.TryGet(switchBlock.Variable, out var switchVal, out var switchType))
-            {
-                throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
-            }
+            Variable? variable = GXCodeEnvironment.GetVariable(switchBlock.Variable, useScope)
+                ?? throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
+            var switchVal = variable.Value;
 
             bool caseMatched = false;
             foreach (var line in block.Lines)
@@ -76,10 +75,11 @@ partial class GXCodeInterpreter
 
             if (!int.TryParse(token, out int iterations))
             {
-                if (!useScope.TryGet(token, out var repeatVal, out var repeatType))
-                {
-                    throw new GXCodeInterpreterError($"Unknown variable {token} in repeat statement");
-                }
+                Variable? variable = GXCodeEnvironment.GetVariable(token, useScope)
+                    ?? throw new GXCodeInterpreterError($"Unknown variable {token} in repeat statement");
+                var repeatVal = variable.Value;
+                var repeatType = variable.Type;
+
                 if (repeatType != "int")
                 {
                     throw new GXCodeInterpreterError($"Repeat variable {token} must be of type int");
@@ -104,10 +104,12 @@ partial class GXCodeInterpreter
         }
         else if (block is GXC_CS_ITERATE iterateBlock)
         {
-            if (!useScope.TryGet(iterateBlock.Variable, out var iterateVal, out var iterateType))
-            {
-                throw new GXCodeInterpreterError($"Unknown variable {iterateBlock.Variable} in iterate statement");
-            }
+            Variable? variable = GXCodeEnvironment.GetVariable(iterateBlock.Variable, useScope)
+                ?? throw new GXCodeInterpreterError($"Unknown variable {iterateBlock.Variable} in iterate statement");
+
+            var iterateVal = variable.Value;
+            var iterateType = variable.Type;
+
             if (iterateType != "str[]" && iterateType != "int[]" && iterateType != "dec[]" && iterateType != "bool[]")
             {
                 throw new GXCodeInterpreterError($"Iterate variable {iterateBlock.Variable} must be an array");
@@ -247,6 +249,8 @@ partial class GXCodeInterpreter
             {
                 string output = outMatch.Groups[1].Value;
 
+                Variable? variable = GXCodeEnvironment.GetVariable(output);
+
                 if (output.StartsWith('"') && output.EndsWith('"'))
                 {
                     Console.WriteLine(output.Trim('"'));
@@ -260,9 +264,9 @@ partial class GXCodeInterpreter
                 {
                     Console.WriteLine(output);
                 }
-                else if (GXCodeProgram.scopeStack.Peek().TryGet(output, out object? variableValue, out var type))
+                else if (variable is not null)
                 {
-                    Console.WriteLine(variableValue);
+                    Console.WriteLine(variable.Value);
                 }
                 else
                 {
@@ -279,11 +283,13 @@ partial class GXCodeInterpreter
             {
                 string output = shoutMatch.Groups[1].Value;
 
-                if (GXCodeProgram.scopeStack.Peek().TryGet(output, out object? variableValue, out var type))
+                Variable? variable = GXCodeEnvironment.GetVariable(output);
+
+                if (variable is not null)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkYellow;
                     Console.Write("[!] ");
-                    Console.WriteLine(variableValue);
+                    Console.WriteLine(variable.Value);
                     Console.ResetColor();
                 }
                 else

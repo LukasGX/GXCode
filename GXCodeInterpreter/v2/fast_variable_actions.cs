@@ -12,11 +12,13 @@ public partial class GXCodeInterpreter
 
         string name = m.Groups[1].Value;
 
-        if (!GXCodeProgram.scopeStack.Peek().TryGet(name, out object? value, out var type))
-            throw new GXCUndeclaredVariableError(lineNr, name, block);
+        Variable? variable = GXCodeEnvironment.GetVariable(name)
+            ?? throw new GXCUndeclaredVariableError(lineNr, name, block);
 
-        Variable var = GXCodeProgram.scopeStack.Peek().Variables[name];
-        if (var.IsConstant)
+        var value = variable.Value;
+        var type = variable.Type;
+
+        if (variable.IsConstant)
             throw new GXCConstantAssignmentError(lineNr, name, block);
 
         if (type is null)
@@ -41,11 +43,13 @@ public partial class GXCodeInterpreter
 
         string name = m.Groups[1].Value;
 
-        if (!GXCodeProgram.scopeStack.Peek().TryGet(name, out object? value, out var type))
-            throw new GXCUndeclaredVariableError(lineNr, name, block);
+        Variable? variable = GXCodeEnvironment.GetVariable(name)
+            ?? throw new GXCUndeclaredVariableError(lineNr, name, block);
 
-        Variable var = GXCodeProgram.scopeStack.Peek().Variables[name];
-        if (var.IsConstant)
+        var value = variable.Value;
+        var type = variable.Type;
+
+        if (variable.IsConstant)
             throw new GXCConstantAssignmentError(lineNr, name, block);
 
         if (type is null)

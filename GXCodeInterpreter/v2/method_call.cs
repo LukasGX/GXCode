@@ -16,9 +16,12 @@ public partial class GXCodeInterpreter
         string parameters = m.Groups[3].Value;
 
         // check instName
-        if (!GXCodeProgram.scopeStack.Peek().TryGet(instName, out object? value, out var type) || type is null)
-            throw new GXCUndeclaredVariableError(lineNr, instName, block);
+        Variable? instance = GXCodeEnvironment.GetVariable(instName)
+            ?? throw new GXCUndeclaredVariableError(lineNr, instName, block);
 
+        var value = instance.Value;
+        var type = instance.Type ?? throw new GXCUndeclaredVariableError(lineNr, instName, block);
+        
         string instPattern = @"^inst<(.*)>";
         Match instM = Regex.Match(type, instPattern);
 
