@@ -21,7 +21,7 @@ class Car {
 
 entrypoint() {
     str abc = "def";
-    int number = 0;
+    int number = 2;
     dec commanumber = 0.5;
     bool bolean = false;
     str[] abcArray = ["a,c", "b", "c"];
@@ -51,6 +51,12 @@ entrypoint() {
 
     repeat (3) {
         out "A";
+    }
+
+    repeat (number) {
+        out "SHOULD";
+        continue;
+        out "SHOULD NOT";
     }
 
     iterate (abcArray) {

@@ -52,8 +52,14 @@ public class GXCodeEnvironment(string code, List<string> lines)
         return null;
     }
 
+    [Obsolete("Avoid overrideScope use")]
     public static Variable? GetVariable(string name, Scope overrideScope)
     {
+        foreach (var key in overrideScope.Variables.Keys)
+        {
+            Console.WriteLine(key);
+        }
+
         if (overrideScope.Variables.TryGetValue(name, out Variable? variable))
             return variable;
         else return null;

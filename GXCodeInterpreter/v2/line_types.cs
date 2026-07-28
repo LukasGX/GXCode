@@ -155,6 +155,12 @@ public partial class GXCodeInterpreter
         string returnBuiltinPattern = @"^\s*return\s+.*;$";
         if (Regex.IsMatch(line, returnBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
+        string continueBuiltinPattern = @"^\s*continue;\s*$";
+        if (Regex.IsMatch(line, continueBuiltinPattern)) return LineType.BUILTIN_OPERATION;
+
+        string breakBuiltinPattern = @"^\s*break;\s*$";
+        if (Regex.IsMatch(line, breakBuiltinPattern)) return LineType.BUILTIN_OPERATION;
+
         // instances declaration
         string instancePattern = @"^\s*inst<(.*)>\s+[a-zA-Z0-9_]+\s*=\s*(.*);?$";
         if (Regex.IsMatch(line, instancePattern)) return LineType.INSTANCE_DECLARATION;
@@ -247,6 +253,12 @@ public partial class GXCodeInterpreter
 
         string exitBuiltinPattern = @"^\s*exit;\s*$";
         if (Regex.IsMatch(line, exitBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+        string continueBuiltinPattern = @"^\s*continue;\s*$";
+        if (Regex.IsMatch(line, continueBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+        string breakBuiltinPattern = @"^\s*break;\s*$";
+        if (Regex.IsMatch(line, breakBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
 
         // METHOD CALL
         string methodCallPattern = @"^\s*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\((.*)\)";
