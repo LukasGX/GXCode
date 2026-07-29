@@ -96,7 +96,10 @@ namespace GXCodeInterpreter
     public class GXCStrayMethodCallError(int lineNr, bool classLevel, string? block) : GXCodeError("GX0029", $"Method calls are not allowed at {(classLevel ? "class" : "top")} level", block, lineNr) {}
 
     [Serializable]
-    public class GXCNotAnInstanceError(int lineNr, string tried, string? block) : GXCodeError("GX0029", $"{tried} is not a class instance", block, lineNr) {}
+    public class GXCNotAnInstanceError(int lineNr, string tried, string? block) : GXCodeError("GX0030", $"{tried} is not a class instance", block, lineNr) {}
+
+    [Serializable]
+    public class GXCStrayDefaultError(int lineNr, string? block) : GXCodeError("GX0031", $"Default without matching switch block", block, lineNr) {}
 
     [Serializable]
     public class GXCodeBreak : Exception

@@ -20,7 +20,7 @@ class Car {
 }
 
 entrypoint() {
-    str abc = "def";
+    str abc = "jkl";
     int number = 2;
     dec commanumber = 0.5;
     bool bolean = false;
@@ -46,6 +46,9 @@ entrypoint() {
         }
         case "ghi" {
             out "abc is ghi";
+        }
+        default {
+            out "abc is other";
         }
     }
 

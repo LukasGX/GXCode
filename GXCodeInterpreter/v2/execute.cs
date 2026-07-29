@@ -38,6 +38,8 @@ partial class GXCodeInterpreter
                 ?? throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
             var switchVal = variable.Value;
 
+            GXC_CS_DEFAULT? defaultBlock = null;
+
             bool caseMatched = false;
             foreach (var line in block.Lines)
             {
@@ -56,7 +58,19 @@ partial class GXCodeInterpreter
                             return;
                         }
                     }
+                    else if (env.blocks[caseId] is GXC_CS_DEFAULT dB)
+                    {
+                        defaultBlock = dB;
+                    }
                 }
+            }
+
+            if (defaultBlock is not null)
+            {
+                GXCodeHelper.Debug("Default case used");
+                ExecuteBlock(env, defaultBlock);
+                caseMatched = true;
+                return;
             }
 
             if (!caseMatched)

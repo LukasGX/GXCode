@@ -365,6 +365,29 @@ public class GXCodeRoot
 
                     env.blocks[last.ID].Lines.Add($"[BLOCK {n_case.ID}]");
                     break;
+                case LineType.DEFAULT_START:
+                    if (last is null)
+                    {
+                        throw new GXCStrayBlockError(ri, typeof(GXC_CS_DEFAULT).Name, false, null);
+                    }
+                    else if (last is GXC_CS_CLASS)
+                    {
+                        throw new GXCStrayBlockError(ri, typeof(GXC_CS_DEFAULT).Name, true, null);
+                    }
+                    if (last is not GXC_CS_SWITCH)
+                    {
+                        throw new GXCStrayDefaultError(ri, null);
+                    }
+
+                    GXC_CS_DEFAULT n_default = new(lastCSID + 1);
+                    env.blocks.Add(lastCSID + 1, n_default);
+                    lastCSID += 1;
+
+                    cs.CS.Add(n_default);
+                    cs_ids.Add(n_default.ID);
+
+                    env.blocks[last.ID].Lines.Add($"[BLOCK {n_default.ID}]");
+                    break;
                 case LineType.REPEAT_START:
                     if (last is null)
                     {

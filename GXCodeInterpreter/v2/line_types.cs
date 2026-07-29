@@ -18,6 +18,7 @@ public enum LineType
     ELSE_START,
     SWITCH_START,
     CASE_START,
+    DEFAULT_START,
     REPEAT_START,
     ITERATE_START,
     WHILE_START,
@@ -124,6 +125,7 @@ public partial class GXCodeInterpreter
 
         string switchPattern = @"^\s*switch\s*\([a-zA-Z0-9]+\)\s*\{$";
         string casePattern = @"^\s*case\s+.*?\s*\{$";
+        string defaultPattern = @"^\s*default\s*\{$";
 
         string repeatPattern = @"^\s*repeat\s*\([a-zA-Z0-9]+\)\s*\{$";
         string iteratePattern = @"^\s*iterate\s*\([a-zA-Z0-9]+\)\s*\{$";
@@ -132,8 +134,11 @@ public partial class GXCodeInterpreter
         if (Regex.IsMatch(line, ifPattern)) return LineType.IF_START;
         if (Regex.IsMatch(line, elseIfPattern)) return LineType.ELSE_IF_START;
         if (Regex.IsMatch(line, elsePattern)) return LineType.ELSE_START;
+
         if (Regex.IsMatch(line, switchPattern)) return LineType.SWITCH_START;
         if (Regex.IsMatch(line, casePattern)) return LineType.CASE_START;
+        if (Regex.IsMatch(line, defaultPattern)) return LineType.DEFAULT_START;
+
         if (Regex.IsMatch(line, repeatPattern)) return LineType.REPEAT_START;
         if (Regex.IsMatch(line, iteratePattern)) return LineType.ITERATE_START;
         if (Regex.IsMatch(line, whilePattern)) return LineType.WHILE_START;
