@@ -36,7 +36,7 @@ partial class GXCodeInterpreter
         {
             Variable? variable = GXCodeEnvironment.GetVariable(switchBlock.Variable)
                 ?? throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
-            var switchVal = variable.Value;
+            var switchValue = variable.Value;
 
             GXC_CS_DEFAULT? defaultBlock = null;
 
@@ -49,14 +49,40 @@ partial class GXCodeInterpreter
                     if (env.blocks[caseId] is GXC_CS_CASE caseBlock)
                     {
                         string caseValue = caseBlock.Value.Trim();
-                        if ((caseValue.StartsWith("\"") && caseValue.EndsWith("\"") && caseValue.Substring(1, caseValue.Length - 2) == switchVal?.ToString()) ||
-                            caseValue == switchVal?.ToString())
+                        string[] caseValueSplit = [.. caseBlock.Value
+                            .Split('|')
+                            .Select(s => s.Trim())];
+
+                        if (caseValueSplit.Length == 1)
                         {
-                            GXCodeHelper.Debug($"Switch case matched: {caseValue}");
-                            ExecuteBlock(env, caseBlock);
-                            caseMatched = true;
-                            return;
+                            if (caseValue.StartsWith('"') && caseValue.EndsWith('"'))
+                                caseValue = caseValue[1..^1];
+
+                            if (caseValue != switchValue?.ToString())
+                                continue;
                         }
+                        else
+                        {
+                            string switchString = switchValue?.ToString() ?? "";
+
+                            bool matched = caseValueSplit.Any(s =>
+                            {
+                                s = s.Trim();
+
+                                if (s.StartsWith('"') && s.EndsWith('"'))
+                                    s = s[1..^1];
+
+                                return s == switchString;
+                            });
+
+                            if (!matched)
+                                continue;
+                        }
+
+                        GXCodeHelper.Debug($"Switch case matched: {caseValue}");
+                        ExecuteBlock(env, caseBlock);
+                        caseMatched = true;
+                        return;
                     }
                     else if (env.blocks[caseId] is GXC_CS_DEFAULT dB)
                     {

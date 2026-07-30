@@ -1,8 +1,15 @@
-class Test {
-    method Hello() {
-    }
-}
-
 entrypoint() {
-    inst<Test> Test = new();
+    str value = "ha";
+
+    switch (value) {
+        case "hi" | "hello" {
+            out "Hello!";
+        }
+        case "bye" {
+            out "Bye!";
+        }
+        default {
+            out "I don't get it!";
+        }
+    }
 }
