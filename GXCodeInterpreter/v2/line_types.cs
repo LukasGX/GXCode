@@ -18,6 +18,7 @@ public enum LineType
     ELSE_START,
     SWITCH_START,
     CASE_START,
+    DEFAULT_START,
     REPEAT_START,
     ITERATE_START,
     WHILE_START,
@@ -40,6 +41,9 @@ public enum LineType
     CONST_DICT_DECLARATION,
     VARIABLE_ASSIGNMENT,
     VARIABLE_ARITHMETIC,
+
+    INCREMENT,
+    DECREMENT,
     UNKNOWN,
     NEGLIGIBLE
 }
@@ -65,10 +69,13 @@ public enum ShortLineType
     VARIABLE_ASSIGNMENT,
     VARIABLE_ARITHMETIC,
     BLOCK_INDICATOR,
+    METHOD_CALL,
+    INCREMENT,
+    DECREMENT,
     UNKNOWN
 }
 
-partial class GXCodeInterpreter
+public partial class GXCodeInterpreter
 {
     public static LineType GetLineType(string line, bool inMultiLineComment)
     {
@@ -93,7 +100,7 @@ partial class GXCodeInterpreter
         // definition start
         string methodPattern = @"^\s*(?:([a-z]+)\s+)?method\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
         string returnPattern = @"^\s*(?:([a-z]+)\s+)?(str|int|dec|bool|rex)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{$";
-        string classPattern = @"^(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
+        string classPattern = @"^\s*(?:\s*([a-z]+)\s+)?class\s+([a-zA-Z0-9_]+)\s+\{$";
         string initPattern = @"^\s*init\s*\((.*?)\)\s+\{$";
         if (Regex.IsMatch(line, methodPattern)) return LineType.METHOD_DEFINITION_START;
         if (Regex.IsMatch(line, returnPattern)) return LineType.RETURN_METHOD_DEFINITION_START;
@@ -118,6 +125,7 @@ partial class GXCodeInterpreter
 
         string switchPattern = @"^\s*switch\s*\([a-zA-Z0-9]+\)\s*\{$";
         string casePattern = @"^\s*case\s+.*?\s*\{$";
+        string defaultPattern = @"^\s*default\s*\{$";
 
         string repeatPattern = @"^\s*repeat\s*\([a-zA-Z0-9]+\)\s*\{$";
         string iteratePattern = @"^\s*iterate\s*\([a-zA-Z0-9]+\)\s*\{$";
@@ -126,8 +134,11 @@ partial class GXCodeInterpreter
         if (Regex.IsMatch(line, ifPattern)) return LineType.IF_START;
         if (Regex.IsMatch(line, elseIfPattern)) return LineType.ELSE_IF_START;
         if (Regex.IsMatch(line, elsePattern)) return LineType.ELSE_START;
+
         if (Regex.IsMatch(line, switchPattern)) return LineType.SWITCH_START;
         if (Regex.IsMatch(line, casePattern)) return LineType.CASE_START;
+        if (Regex.IsMatch(line, defaultPattern)) return LineType.DEFAULT_START;
+
         if (Regex.IsMatch(line, repeatPattern)) return LineType.REPEAT_START;
         if (Regex.IsMatch(line, iteratePattern)) return LineType.ITERATE_START;
         if (Regex.IsMatch(line, whilePattern)) return LineType.WHILE_START;
@@ -148,6 +159,12 @@ partial class GXCodeInterpreter
 
         string returnBuiltinPattern = @"^\s*return\s+.*;$";
         if (Regex.IsMatch(line, returnBuiltinPattern)) return LineType.BUILTIN_OPERATION;
+
+        string continueBuiltinPattern = @"^\s*continue;\s*$";
+        if (Regex.IsMatch(line, continueBuiltinPattern)) return LineType.BUILTIN_OPERATION;
+
+        string breakBuiltinPattern = @"^\s*break;\s*$";
+        if (Regex.IsMatch(line, breakBuiltinPattern)) return LineType.BUILTIN_OPERATION;
 
         // instances declaration
         string instancePattern = @"^\s*inst<(.*)>\s+[a-zA-Z0-9_]+\s*=\s*(.*);?$";
@@ -218,6 +235,14 @@ partial class GXCodeInterpreter
         string arithmeticPattern = @"^\s*[a-zA-Z0-9]+\s*(?:[*+]-=|\*=|\+=|-=|\*=)\s*.*;$";
         if (Regex.IsMatch(line, arithmeticPattern)) return LineType.VARIABLE_ARITHMETIC;
 
+        // increment
+        string incrementPattern = @"^\s*([a-zA-Z0-9]+)\s*\+\+;$";
+        if (Regex.IsMatch(line, incrementPattern)) return LineType.INCREMENT;
+
+        // decrement
+        string decrementPattern = @"^\s*([a-zA-Z0-9]+)\s*--;$";
+        if (Regex.IsMatch(line, decrementPattern)) return LineType.DECREMENT;
+
         // unknown
         return LineType.UNKNOWN;
     }
@@ -233,6 +258,16 @@ partial class GXCodeInterpreter
 
         string exitBuiltinPattern = @"^\s*exit;\s*$";
         if (Regex.IsMatch(line, exitBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+        string continueBuiltinPattern = @"^\s*continue;\s*$";
+        if (Regex.IsMatch(line, continueBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+        string breakBuiltinPattern = @"^\s*break;\s*$";
+        if (Regex.IsMatch(line, breakBuiltinPattern)) return ShortLineType.BUILTIN_OPERATION;
+
+        // METHOD CALL
+        string methodCallPattern = @"^\s*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\((.*)\)";
+        if (Regex.IsMatch(line, methodCallPattern)) return ShortLineType.METHOD_CALL;
 
         // INSTANCES DECLARATION
         string instancePattern = @"^\s*inst<(.*)>\s+[a-zA-Z0-9_]+\s*=\s*(.*);?$";
@@ -306,6 +341,14 @@ partial class GXCodeInterpreter
         // BLOCK INDICATOR
         string blockIndicatorPattern = @"^\s*\[BLOCK\s+[0-99999999999]+\]\s*$";
         if (Regex.IsMatch(line, blockIndicatorPattern)) return ShortLineType.BLOCK_INDICATOR;
+
+        // INCREMENT
+        string incrementPattern = @"^\s*([a-zA-Z0-9]+)\s*\+\+;$";
+        if (Regex.IsMatch(line, incrementPattern)) return ShortLineType.INCREMENT;
+
+        // DECREMENT
+        string decrementPattern = @"^\s*([a-zA-Z0-9]+)\s*--;$";
+        if (Regex.IsMatch(line, decrementPattern)) return ShortLineType.DECREMENT;
 
         return ShortLineType.UNKNOWN;
     }

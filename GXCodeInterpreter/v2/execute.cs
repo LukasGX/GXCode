@@ -7,13 +7,13 @@ partial class GXCodeInterpreter
     public static void ExecuteBlock(GXCodeEnvironment env, GXC_CS_ELEMENT block, Scope? overrideScope = null)
     {
         if (block is not GXC_CS_INIT) GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
-        
-        Scope useScope = overrideScope ?? GXCodeProgram.scopeStack.Peek();
+
+        string blockName = block.GetType().ToString() + "#" + block.ID;
 
         if (block is GXC_CS_IF ifBlock)
         {
             GXCodeHelper.Debug($"Evaluating IF condition: {ifBlock.Condition}");
-            bool isTrue = EvaluateCondition(env, ifBlock.Condition);
+            bool isTrue = EvaluateConditions(ifBlock.Condition, blockName);
             if (!isTrue)
             {
                 GXCodeHelper.Debug("Condition is false, skipping IF block");
@@ -24,7 +24,7 @@ partial class GXCodeInterpreter
         else if (block is GXC_CS_ELSE_IF elseIfBlock)
         {
             GXCodeHelper.Debug($"Evaluating ELSE IF condition: {elseIfBlock.Condition}");
-            bool isTrue = EvaluateCondition(env, elseIfBlock.Condition);
+            bool isTrue = EvaluateConditions(elseIfBlock.Condition, blockName);
             if (!isTrue)
             {
                 GXCodeHelper.Debug("Condition is false, skipping ELSE IF block");
@@ -34,10 +34,11 @@ partial class GXCodeInterpreter
         }
         else if (block is GXC_CS_SWITCH switchBlock)
         {
-            if (!useScope.TryGet(switchBlock.Variable, out var switchVal, out var switchType))
-            {
-                throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
-            }
+            Variable? variable = GXCodeEnvironment.GetVariable(switchBlock.Variable)
+                ?? throw new GXCodeInterpreterError($"Unknown variable {switchBlock.Variable} in switch statement");
+            var switchValue = variable.Value;
+
+            GXC_CS_DEFAULT? defaultBlock = null;
 
             bool caseMatched = false;
             foreach (var line in block.Lines)
@@ -48,16 +49,54 @@ partial class GXCodeInterpreter
                     if (env.blocks[caseId] is GXC_CS_CASE caseBlock)
                     {
                         string caseValue = caseBlock.Value.Trim();
-                        if ((caseValue.StartsWith("\"") && caseValue.EndsWith("\"") && caseValue.Substring(1, caseValue.Length - 2) == switchVal?.ToString()) ||
-                            caseValue == switchVal?.ToString())
+                        string[] caseValueSplit = [.. caseBlock.Value
+                            .Split('|')
+                            .Select(s => s.Trim())];
+
+                        if (caseValueSplit.Length == 1)
                         {
-                            GXCodeHelper.Debug($"Switch case matched: {caseValue}");
-                            ExecuteBlock(env, caseBlock);
-                            caseMatched = true;
-                            return;
+                            if (caseValue.StartsWith('"') && caseValue.EndsWith('"'))
+                                caseValue = caseValue[1..^1];
+
+                            if (caseValue != switchValue?.ToString())
+                                continue;
                         }
+                        else
+                        {
+                            string switchString = switchValue?.ToString() ?? "";
+
+                            bool matched = caseValueSplit.Any(s =>
+                            {
+                                s = s.Trim();
+
+                                if (s.StartsWith('"') && s.EndsWith('"'))
+                                    s = s[1..^1];
+
+                                return s == switchString;
+                            });
+
+                            if (!matched)
+                                continue;
+                        }
+
+                        GXCodeHelper.Debug($"Switch case matched: {caseValue}");
+                        ExecuteBlock(env, caseBlock);
+                        caseMatched = true;
+                        return;
+                    }
+                    else if (env.blocks[caseId] is GXC_CS_DEFAULT dB)
+                    {
+                        defaultBlock = dB;
                     }
                 }
+            }
+
+            if (defaultBlock is not null)
+            {
+                GXCodeHelper.Debug("Default case used");
+                ExecuteBlock(env, defaultBlock);
+                caseMatched = true;
+                return;
             }
 
             if (!caseMatched)
@@ -74,10 +113,11 @@ partial class GXCodeInterpreter
 
             if (!int.TryParse(token, out int iterations))
             {
-                if (!useScope.TryGet(token, out var repeatVal, out var repeatType))
-                {
-                    throw new GXCodeInterpreterError($"Unknown variable {token} in repeat statement");
-                }
+                Variable? variable = GXCodeEnvironment.GetVariable(token)
+                    ?? throw new GXCodeInterpreterError($"Unknown variable {token} in repeat statement");
+                var repeatVal = variable.Value;
+                var repeatType = variable.Type;
+
                 if (repeatType != "int")
                 {
                     throw new GXCodeInterpreterError($"Repeat variable {token} must be of type int");
@@ -93,8 +133,9 @@ partial class GXCodeInterpreter
             {
                 GXCodeHelper.Debug($"Repeat iteration {i + 1} of {iterations}");
                 // create an iteration-local scope
-                GXCodeProgram.scopeStack.Push(new Scope(useScope));
-                ExecuteBlockBody(env, repeatBlock);
+                GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+                bool result = ExecuteBlockBody(env, repeatBlock);
+                if (result) break;
                 GXCodeProgram.scopeStack.Pop();
             }
             GXCodeProgram.scopeStack.Pop();
@@ -102,10 +143,12 @@ partial class GXCodeInterpreter
         }
         else if (block is GXC_CS_ITERATE iterateBlock)
         {
-            if (!useScope.TryGet(iterateBlock.Variable, out var iterateVal, out var iterateType))
-            {
-                throw new GXCodeInterpreterError($"Unknown variable {iterateBlock.Variable} in iterate statement");
-            }
+            Variable? variable = GXCodeEnvironment.GetVariable(iterateBlock.Variable)
+                ?? throw new GXCodeInterpreterError($"Unknown variable {iterateBlock.Variable} in iterate statement");
+
+            var iterateVal = variable.Value;
+            var iterateType = variable.Type;
+
             if (iterateType != "str[]" && iterateType != "int[]" && iterateType != "dec[]" && iterateType != "bool[]")
             {
                 throw new GXCodeInterpreterError($"Iterate variable {iterateBlock.Variable} must be an array");
@@ -123,20 +166,23 @@ partial class GXCodeInterpreter
             foreach (var item in collection)
             {
                 GXCodeHelper.Debug($"Iterating item: {item}");
-                GXCodeProgram.scopeStack.Push(new Scope(useScope));
-                useScope.Set("element", item, iterateType.Substring(0, iterateType.Length - 2));
-                ExecuteBlockBody(env, iterateBlock);
+                Scope old = GXCodeProgram.scopeStack.Peek();
+                GXCodeProgram.scopeStack.Push(new Scope(old));
+                old.Set("element", item, iterateType.Substring(0, iterateType.Length - 2));
+                bool result = ExecuteBlockBody(env, iterateBlock);
+                if (result) break;
                 GXCodeProgram.scopeStack.Pop();
             }
             return;
         }
         else if (block is GXC_CS_WHILE whileBlock)
         {
-            while (EvaluateCondition(env, whileBlock.Condition))
+            while (EvaluateConditions(whileBlock.Condition, blockName))
             {
                 GXCodeHelper.Debug("While condition is true, executing block");
-                GXCodeProgram.scopeStack.Push(new Scope(useScope));
-                ExecuteBlockBody(env, whileBlock);
+                GXCodeProgram.scopeStack.Push(new Scope(GXCodeProgram.scopeStack.Peek()));
+                bool result = ExecuteBlockBody(env, whileBlock);
+                if (result) break;
                 GXCodeProgram.scopeStack.Pop();
             }
             GXCodeHelper.Debug("While condition is false, exiting block");
@@ -149,7 +195,7 @@ partial class GXCodeInterpreter
     }
 
     // Execute the lines inside a block (helper extracted to avoid accidental recursion)
-    public static void ExecuteBlockBody(GXCodeEnvironment env, GXC_CS_ELEMENT block)
+    public static bool ExecuteBlockBody(GXCodeEnvironment env, GXC_CS_ELEMENT block)
     {
         for (int i = 0; i < block.Lines.Count; i++)
         {
@@ -158,6 +204,7 @@ partial class GXCodeInterpreter
             GXCodeHelper.Debug($"Line {i + 1} of {block.GetType().Name}#{block.ID}: {line} (type: {type})");
 
             string blockName = $"{block.GetType().Name}#{block.ID}";
+            string blockType = block.GetType().Name;
             int ri = i+1;
 
             switch (type)
@@ -165,7 +212,9 @@ partial class GXCodeInterpreter
                 case ShortLineType.UNKNOWN:
                     throw new GXCodeInterpreterError($"Undetected indeterminable line structure of {line}");
                 case ShortLineType.BUILTIN_OPERATION:
-                    ExecuteBuiltinOperation(line);
+                    bool? result = ExecuteBuiltinOperation(line, ri, block);
+                    if (result == true) return false;
+                    else if (result == null) return true;
                     break;
                 case ShortLineType.INSTANCE_DECLARATION:
                     DeclareInstance(line, ri, blockName, env);
@@ -218,64 +267,106 @@ partial class GXCodeInterpreter
                 case ShortLineType.VARIABLE_ARITHMETIC:
                     PerformVariableArithmetic(line, ri, blockName);
                     break;
+                case ShortLineType.INCREMENT:
+                    IncrementVariable(line, ri, blockName);
+                    break;
+                case ShortLineType.DECREMENT:
+                    DecrementVariable(line, ri, blockName);
+                    break;
+                case ShortLineType.METHOD_CALL:
+                    CallMethod(env, line, ri, blockName);
+                    break;
                 case ShortLineType.BLOCK_INDICATOR:
                     int nestedId = int.Parse(Regex.Match(line, @"^\s*\[BLOCK\s+([0-99999999999]+)\]\s*$").Groups[1].Value);
                     ExecuteBlock(env, env.blocks[nestedId]);
                     break;
             }
         }
+
+        return false;
     }
 
-    public static void ExecuteBuiltinOperation(string line)
+    public static bool? ExecuteBuiltinOperation(string line, int lineNr, GXC_CS_ELEMENT block)
+    {
+        // out
+        string outPattern = @"^\s*out\s+(.*);$";
+        Match outMatch = Regex.Match(line, outPattern);
+
+        if (outMatch.Success)
         {
-            // out
-            string outPattern = @"^\s*out\s+(.*);$";
-            Match outMatch = Regex.Match(line, outPattern);
+            string output = outMatch.Groups[1].Value;
 
-            if (outMatch.Success)
+            Variable? variable = GXCodeEnvironment.GetVariable(output);
+
+            if (output.StartsWith('"') && output.EndsWith('"'))
             {
-                string output = outMatch.Groups[1].Value;
-
-                if (GXCodeProgram.scopeStack.Peek().TryGet(output, out object? variableValue, out var type))
-                {
-                    Console.WriteLine(variableValue);
-                }
-                else
-                {
-                    Console.WriteLine(output.Trim('"'));
-                }
-                return;
+                Console.WriteLine(output.Trim('"'));
             }
-
-            // shout
-            string shoutPattern = @"^\s*shout\s+(.*);$";
-            Match shoutMatch = Regex.Match(line, shoutPattern);
-
-            if (shoutMatch.Success)
+            else if (
+                int.TryParse(output, out _) ||
+                decimal.TryParse(output, out _) ||
+                bool.TryParse(output, out _)
+                // ignoring rex for now
+            )
             {
-                string output = shoutMatch.Groups[1].Value;
-
-                if (GXCodeProgram.scopeStack.Peek().TryGet(output, out object? variableValue, out var type))
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    Console.Write("[!] ");
-                    Console.WriteLine(variableValue);
-                    Console.ResetColor();
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    Console.Write("[!] ");
-                    Console.WriteLine(output.Trim('"'));
-                    Console.ResetColor();
-                }
-                return;
+                Console.WriteLine(output);
             }
-
-            // exit
-            string exitPattern = @"^\s*exit;\s*$";
-            if (Regex.IsMatch(line, exitPattern)) throw new GXCodeBreak();
-
-            throw new GXCodeInterpreterError("Could not detect built-in operation");
+            else if (variable is not null)
+            {
+                Console.WriteLine(variable.Value);
+            }
+            else
+            {
+                throw new GXCUndeclaredVariableError(lineNr, output, null);
+            }
+            return false;
         }
+
+        // shout
+        string shoutPattern = @"^\s*shout\s+(.*);$";
+        Match shoutMatch = Regex.Match(line, shoutPattern);
+
+        if (shoutMatch.Success)
+        {
+            string output = shoutMatch.Groups[1].Value;
+
+            Variable? variable = GXCodeEnvironment.GetVariable(output);
+
+            if (variable is not null)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.Write("[!] ");
+                Console.WriteLine(variable.Value);
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.Write("[!] ");
+                Console.WriteLine(output.Trim('"'));
+                Console.ResetColor();
+            }
+            return false;
+        }
+
+        // exit
+        string exitPattern = @"^\s*exit;\s*$";
+        if (Regex.IsMatch(line, exitPattern)) throw new GXCodeBreak();
+
+        // continue
+        string continuePattern = @"^\s*continue;\s*$";
+        if (Regex.IsMatch(line, continuePattern))
+        {
+            if (block is GXC_CS_ITERATE || block is GXC_CS_REPEAT || block is GXC_CS_WHILE) return true;
+        }
+
+        // break
+        string breakPattern = @"^\s*break;\s*$";
+        if (Regex.IsMatch(line, breakPattern))
+        {
+            if (block is GXC_CS_ITERATE || block is GXC_CS_REPEAT || block is GXC_CS_WHILE) return null;
+        }
+
+        throw new GXCodeInterpreterError("Could not detect built-in operation");
+    }
 }
